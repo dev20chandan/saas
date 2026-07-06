@@ -3,6 +3,7 @@
 import React, { useState, useMemo, Fragment } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
+import { api } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Status = 'Successful' | 'Pending' | 'Failed' | 'Refunded';
@@ -20,19 +21,6 @@ interface Transaction {
   description:  string;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-const INIT_TXNS: Transaction[] = [
-  { id: 'TXN-8091', schoolName: 'Greenfield International', schoolId: 'SCH001', amount: 199990, date: 'Jun 10, 2024, 10:23 AM', method: 'Bank Transfer', status: 'Successful', invoiceId: 'INV-2024-001', description: 'Annual Premium Plan Renewal' },
-  { id: 'TXN-8092', schoolName: 'Sunrise Public School', schoolId: 'SCH002', amount: 9999, date: 'Jun 12, 2024, 02:15 PM', method: 'Credit Card', status: 'Successful', invoiceId: 'INV-2024-002', description: 'Monthly Standard Plan' },
-  { id: 'TXN-8093', schoolName: 'City Montessori School', schoolId: 'SCH003', amount: 499990, date: 'Jun 15, 2024, 09:00 AM', method: 'UPI', status: 'Pending', invoiceId: 'INV-2024-003', description: 'Annual Enterprise Plan' },
-  { id: 'TXN-8094', schoolName: 'Bright Future Academy', schoolId: 'SCH004', amount: 4999, date: 'Jun 16, 2024, 11:45 AM', method: 'Credit Card', status: 'Failed', invoiceId: 'INV-2024-004', description: 'Monthly Basic Plan' },
-  { id: 'TXN-8095', schoolName: 'Delhi Public School', schoolId: 'SCH005', amount: 199990, date: 'Jun 18, 2024, 04:30 PM', method: 'Bank Transfer', status: 'Successful', invoiceId: 'INV-2024-005', description: 'Annual Premium Plan' },
-  { id: 'TXN-8096', schoolName: 'Ryan International School', schoolId: 'SCH006', amount: 9999, date: 'Jun 19, 2024, 01:20 PM', method: 'Credit Card', status: 'Refunded', invoiceId: 'INV-2024-006', description: 'Monthly Standard Plan (Prorated Refund)' },
-  { id: 'TXN-8097', schoolName: 'The Heritage School', schoolId: 'SCH007', amount: 499990, date: 'Jun 20, 2024, 10:10 AM', method: 'Bank Transfer', status: 'Successful', invoiceId: 'INV-2024-007', description: 'Annual Enterprise Plan Renewal' },
-  { id: 'TXN-8098', schoolName: 'Presidium School', schoolId: 'SCH008', amount: 19999, date: 'Jun 22, 2024, 03:55 PM', method: 'UPI', status: 'Successful', invoiceId: 'INV-2024-008', description: 'Monthly Premium Plan' },
-  { id: 'TXN-8099', schoolName: 'Kendriya Vidyalaya No. 1', schoolId: 'SCH009', amount: 49990, date: 'Jun 25, 2024, 11:15 AM', method: 'Bank Transfer', status: 'Pending', invoiceId: 'INV-2024-009', description: 'Annual Basic Plan' },
-  { id: 'TXN-8100', schoolName: 'La Martiniere College', schoolId: 'SCH010', amount: 9999, date: 'Jun 28, 2024, 09:45 AM', method: 'Credit Card', status: 'Failed', invoiceId: 'INV-2024-010', description: 'Monthly Standard Plan' },
-];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<Status, string> = {
@@ -59,7 +47,55 @@ export default function PaymentsPage() {
   const [sortCol, setSortCol]       = useState<keyof Transaction>('date');
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [txns]                      = useState<Transaction[]>(INIT_TXNS);
+  const [txns, setTxns] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    async function loadTxns() {
+      try {
+        const res = await api.get('/schools?limit=1000');
+        const schools = res.data || [];
+        
+        const generatedTxns: Transaction[] = schools.map((sch: any, index: number) => {
+          let planAmount = 4999;
+          let method: Method = 'Credit Card';
+          let status: Status = 'Successful';
+          
+          if (sch.plan === 'Standard') planAmount = 9999;
+          if (sch.plan === 'Premium') {
+            planAmount = 199990;
+            method = 'Bank Transfer';
+          }
+          if (sch.plan === 'Enterprise') {
+            planAmount = 499990;
+            method = 'UPI';
+          }
+          
+          if (sch.status === 'Trial') status = 'Pending';
+          if (sch.status === 'Expired') status = 'Failed';
+          if (sch.status === 'Suspended') status = 'Refunded';
+
+          return {
+            id: `TXN-${8091 + index}`,
+            schoolName: sch.name,
+            schoolId: sch.code,
+            amount: planAmount,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            method,
+            status,
+            invoiceId: `INV-${new Date().getFullYear()}-${String(index + 1).padStart(3, '0')}`,
+            description: `Annual ${sch.plan || 'Basic'} Plan`
+          };
+        });
+        setTxns(generatedTxns);
+      } catch (error) {
+        console.error('Failed to load transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadTxns();
+  }, []);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -201,7 +237,13 @@ export default function PaymentsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-[#2a2d3a]">
-                {paginated.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="py-16 text-center">
+                      <p className="text-sm font-semibold text-slate-400 dark:text-slate-600">Loading transactions...</p>
+                    </td>
+                  </tr>
+                ) : paginated.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-16 text-center">
                       <Icon d={ICONS.payments} className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />

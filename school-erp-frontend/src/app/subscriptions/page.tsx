@@ -3,6 +3,7 @@
 import React, { useState, useMemo, Fragment } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
+import { api } from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Plan   = 'Basic' | 'Standard' | 'Premium' | 'Enterprise';
@@ -21,19 +22,6 @@ interface Subscription {
   nextBilling:  string;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-const INIT_SUBS: Subscription[] = [
-  { id: 'SUB-001', schoolName: 'Greenfield International', schoolId: 'SCH001', plan: 'Premium', cycle: 'Annual', amount: 199990, status: 'Active', lastPayment: 'Jan 10, 2024', nextBilling: 'Jan 10, 2025' },
-  { id: 'SUB-002', schoolName: 'Sunrise Public School', schoolId: 'SCH002', plan: 'Standard', cycle: 'Monthly', amount: 9999, status: 'Trialling', lastPayment: '-', nextBilling: 'Jul 22, 2024' },
-  { id: 'SUB-003', schoolName: 'City Montessori School', schoolId: 'SCH003', plan: 'Enterprise', cycle: 'Annual', amount: 499990, status: 'Active', lastPayment: 'Nov 5, 2023', nextBilling: 'Nov 5, 2024' },
-  { id: 'SUB-004', schoolName: 'Bright Future Academy', schoolId: 'SCH004', plan: 'Basic', cycle: 'Monthly', amount: 4999, status: 'Past Due', lastPayment: 'May 18, 2024', nextBilling: 'Jun 18, 2024' },
-  { id: 'SUB-005', schoolName: 'Delhi Public School', schoolId: 'SCH005', plan: 'Premium', cycle: 'Annual', amount: 199990, status: 'Active', lastPayment: 'Feb 14, 2024', nextBilling: 'Feb 14, 2025' },
-  { id: 'SUB-006', schoolName: 'Ryan International School', schoolId: 'SCH006', plan: 'Standard', cycle: 'Monthly', amount: 9999, status: 'Canceled', lastPayment: 'May 30, 2024', nextBilling: '-' },
-  { id: 'SUB-007', schoolName: 'The Heritage School', schoolId: 'SCH007', plan: 'Enterprise', cycle: 'Annual', amount: 499990, status: 'Active', lastPayment: 'Sep 12, 2023', nextBilling: 'Sep 12, 2024' },
-  { id: 'SUB-008', schoolName: 'Presidium School', schoolId: 'SCH008', plan: 'Premium', cycle: 'Monthly', amount: 19999, status: 'Active', lastPayment: 'Jun 7, 2024', nextBilling: 'Jul 7, 2024' },
-  { id: 'SUB-009', schoolName: 'Kendriya Vidyalaya No. 1', schoolId: 'SCH009', plan: 'Basic', cycle: 'Annual', amount: 49990, status: 'Active', lastPayment: 'Aug 19, 2023', nextBilling: 'Aug 19, 2024' },
-  { id: 'SUB-010', schoolName: 'La Martiniere College', schoolId: 'SCH010', plan: 'Standard', cycle: 'Monthly', amount: 9999, status: 'Past Due', lastPayment: 'Apr 3, 2024', nextBilling: 'May 3, 2024' },
-];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<Status, string> = {
@@ -60,7 +48,46 @@ export default function SubscriptionsPage() {
   const [sortCol, setSortCol]       = useState<keyof Subscription>('schoolName');
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>('asc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [subs]                      = useState<Subscription[]>(INIT_SUBS);
+  const [subs, setSubs] = useState<Subscription[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    async function loadSubs() {
+      try {
+        const res = await api.get('/schools?limit=1000');
+        const schools = res.data || [];
+        const mappedSubs: Subscription[] = schools.map((sch: any) => {
+          let planAmount = 4999;
+          if (sch.plan === 'Standard') planAmount = 9999;
+          if (sch.plan === 'Premium') planAmount = 19999;
+          if (sch.plan === 'Enterprise') planAmount = 49999;
+
+          let frontendStatus: Status = 'Active';
+          if (sch.status === 'Trial') frontendStatus = 'Trialling';
+          if (sch.status === 'Expired') frontendStatus = 'Past Due';
+          if (sch.status === 'Suspended') frontendStatus = 'Canceled';
+
+          return {
+            id: sch._id,
+            schoolName: sch.name,
+            schoolId: sch.code,
+            plan: (sch.plan as Plan) || 'Basic',
+            cycle: 'Monthly',
+            amount: planAmount,
+            status: frontendStatus,
+            lastPayment: '-',
+            nextBilling: '-',
+          };
+        });
+        setSubs(mappedSubs);
+      } catch (error) {
+        console.error('Failed to load subscriptions:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSubs();
+  }, []);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -204,7 +231,13 @@ export default function SubscriptionsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-[#2a2d3a]">
-                {paginated.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="py-16 text-center">
+                      <p className="text-sm font-semibold text-slate-400 dark:text-slate-600">Loading subscriptions...</p>
+                    </td>
+                  </tr>
+                ) : paginated.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-16 text-center">
                       <Icon d={ICONS.subscriptions} className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
