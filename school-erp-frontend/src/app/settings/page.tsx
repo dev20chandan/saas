@@ -8,12 +8,12 @@ import { useAuth } from '@/lib/AuthContext';
 
 // ── Settings Tabs ─────────────────────────────────────────────────────────────
 const TABS = [
-  { id: 'general',    label: 'General',        icon: ICONS.settings },
-  { id: 'profile',    label: 'Profile',         icon: ICONS.user },
-  { id: 'security',   label: 'Security',        icon: ICONS.shield },
+  { id: 'general', label: 'General', icon: ICONS.settings },
+  { id: 'profile', label: 'Profile', icon: ICONS.user },
+  { id: 'security', label: 'Security', icon: ICONS.shield },
   { id: 'notifications', label: 'Notifications', icon: ICONS.bell },
-  { id: 'billing',    label: 'Billing',         icon: ICONS.credit },
-  { id: 'integrations', label: 'Integrations',  icon: ICONS.globe },
+  { id: 'billing', label: 'Billing', icon: ICONS.credit },
+  { id: 'integrations', label: 'Integrations', icon: ICONS.globe },
 ];
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
@@ -145,8 +145,8 @@ function GeneralTab() {
       </SettingCard>
 
       <SettingCard title="Maintenance Mode" description="Temporarily disable access to the platform">
-        <ToggleRow id="maintenance" label="Enable Maintenance Mode" description="When enabled, users will see a maintenance page" checked={false} onChange={() => {}} />
-        <ToggleRow id="debug" label="Debug Mode" description="Show detailed error messages to administrators" checked={false} onChange={() => {}} />
+        <ToggleRow id="maintenance" label="Enable Maintenance Mode" description="When enabled, users will see a maintenance page" checked={false} onChange={() => { }} />
+        <ToggleRow id="debug" label="Debug Mode" description="Show detailed error messages to administrators" checked={false} onChange={() => { }} />
       </SettingCard>
     </div>
   );
@@ -178,7 +178,7 @@ function ProfileTab() {
           <Field id="email" label="Email Address" defaultValue="platform@schools.in" type="email" />
           <Field id="phone" label="Phone Number" defaultValue="+91 98765 43210" type="tel" />
           <Field id="designation" label="Designation" defaultValue="Platform Administrator" />
-          <SelectField id="role" label="Role" value="Super Admin" onChange={() => {}}
+          <SelectField id="role" label="Role" value="Super Admin" onChange={() => { }}
             options={['Super Admin', 'Admin', 'Manager']} />
         </div>
         <SaveBtn onClick={save} saved={saved} />
@@ -272,7 +272,7 @@ function SecurityTab() {
         <div className="max-w-xs space-y-1.5">
           <p className="text-xs font-semibold text-slate-600">Password Strength</p>
           <div className="flex gap-1">
-            {['bg-green-500','bg-green-500','bg-green-500','bg-yellow-400','bg-slate-200'].map((c,i) => (
+            {['bg-green-500', 'bg-green-500', 'bg-green-500', 'bg-yellow-400', 'bg-slate-200'].map((c, i) => (
               <div key={i} className={`flex-1 h-1.5 rounded-full ${c}`} />
             ))}
           </div>
@@ -505,8 +505,8 @@ function IntegrationsTab() {
             setGoogle(user.settings.integration_google === true);
             setSlack(user.settings.integration_slack === true);
             setKeys(user.settings.apiKeys || [
-              { id: '1', name: 'Production Key', key: 'sk_live_1234567890abcdef12345678ABcd', created: 'Jan 15, 2025' },
-              { id: '2', name: 'Test Key', key: 'sk_test_0987654321fedcba09876543XYz9', created: 'Mar 02, 2025' },
+              { id: '1', name: 'Production Key', key: process.env.NEXT_PUBLIC_PROD_API_KEY, created: 'Jan 15, 2025' },
+              { id: '2', name: 'Test Key', key: process.env.NEXT_PUBLIC_TEST_API_KEY, created: 'Mar 02, 2025' },
             ]);
           }
         }
@@ -660,13 +660,13 @@ export default function SettingsPage() {
 
   const renderTab = () => {
     switch (activeTab) {
-      case 'general':       return <GeneralTab />;
-      case 'profile':       return <ProfileTab />;
-      case 'security':      return <SecurityTab />;
+      case 'general': return <GeneralTab />;
+      case 'profile': return <ProfileTab />;
+      case 'security': return <SecurityTab />;
       case 'notifications': return <NotificationsTab />;
-      case 'billing':       return <BillingTab />;
-      case 'integrations':  return <IntegrationsTab />;
-      default:              return <GeneralTab />;
+      case 'billing': return <BillingTab />;
+      case 'integrations': return <IntegrationsTab />;
+      default: return <GeneralTab />;
     }
   };
 
