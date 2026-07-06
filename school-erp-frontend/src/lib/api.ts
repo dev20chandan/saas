@@ -33,7 +33,11 @@ export async function apiRequest<T = any>(
     let errorMsg = 'An error occurred';
     try {
       const errorData = await response.json();
-      errorMsg = errorData.message || errorMsg;
+      // Handle new GlobalExceptionFilter format (errorData.error.message)
+      errorMsg = errorData?.error?.message || errorData.message || errorMsg;
+      if (Array.isArray(errorMsg)) {
+        errorMsg = errorMsg.join(', ');
+      }
     } catch {
       // JSON parsing failed, use statusText
       errorMsg = response.statusText || errorMsg;
@@ -54,7 +58,14 @@ export async function apiRequest<T = any>(
     return {} as T;
   }
 
-  return response.json() as Promise<T>;
+  const jsonResponse = await response.json();
+
+  // Unwrap the standardized backend response { success: true, data: T }
+  if (jsonResponse && typeof jsonResponse === 'object' && 'success' in jsonResponse) {
+    return jsonResponse.data as T;
+  }
+
+  return jsonResponse as T;
 }
 
 export const api = {

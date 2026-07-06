@@ -2,17 +2,39 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import compression from 'compression';
+import mongoSanitize from 'express-mongo-sanitize';
 import { AppModule } from './app.module';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for frontend requests
+  // Security Headers
+  app.use(helmet());
+
+  // Prevent NoSQL Injection
+  app.use(mongoSanitize());
+
+  // Compression
+  app.use(compression());
+
+  // Strict CORS for frontend requests
   app.enableCors({
-    origin: '*', // In production, replace with specific domain
+    origin: process.env.NODE_ENV === 'production' 
+      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.com'] 
+      : '*', 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
+
+  // Global Response Standardizer
+  app.useGlobalInterceptors(new TransformInterceptor());
+
+  // Global Exception Filter
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Enable global validation pipe
   app.useGlobalPipes(
@@ -20,6 +42,7 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      stopAtFirstError: true, // Fail fast on validation
     }),
   );
 
@@ -37,7 +60,7 @@ async function bootstrap() {
         description: 'Enter JWT token',
         in: 'header',
       },
-      'JWT-auth', // This name will be referenced in controllers as @ApiBearerAuth('JWT-auth')
+      'JWT-auth',
     )
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
