@@ -3,6 +3,7 @@
 import React, { useState, useMemo, Fragment } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
+import { useAudit } from '@/hooks/useAudit';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ActionType = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'EXPORT';
@@ -20,20 +21,7 @@ interface AuditLog {
   payload:      any;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-const INIT_LOGS: AuditLog[] = [
-  { id: 'EVT-9042', timestamp: '2024-06-29 10:14:22', user: 'admin@schoolerp.com', role: 'Super Admin', action: 'UPDATE', resource: 'School Settings', status: 'Success', ipAddress: '192.168.1.45', payload: { previous: { maxUsers: 500 }, new: { maxUsers: 1000 } } },
-  { id: 'EVT-9041', timestamp: '2024-06-29 09:55:10', user: 'jdoe@greenfield.edu', role: 'Principal', action: 'EXPORT', resource: 'Student Records', status: 'Success', ipAddress: '203.0.113.12', payload: { format: 'CSV', rowCount: 1250, filters: { grade: '10' } } },
-  { id: 'EVT-9040', timestamp: '2024-06-29 09:30:05', user: 'unknown', role: 'Guest', action: 'LOGIN', resource: 'Authentication', status: 'Failure', ipAddress: '45.22.19.102', payload: { error: 'Invalid credentials', attempt: 3 } },
-  { id: 'EVT-9039', timestamp: '2024-06-29 08:45:33', user: 'tsmith@sunrise.edu', role: 'Teacher', action: 'CREATE', resource: 'Assignment', status: 'Success', ipAddress: '198.51.100.5', payload: { title: 'Midterm Science Project', dueDate: '2024-07-15' } },
-  { id: 'EVT-9038', timestamp: '2024-06-28 16:20:11', user: 'admin@schoolerp.com', role: 'Super Admin', action: 'DELETE', resource: 'User Account', status: 'Success', ipAddress: '192.168.1.45', payload: { deletedUserId: 'USR-8992', reason: 'Requested by school' } },
-  { id: 'EVT-9037', timestamp: '2024-06-28 14:10:00', user: 'unknown', role: 'Guest', action: 'LOGIN', resource: 'Authentication', status: 'Failure', ipAddress: '112.45.67.89', payload: { error: 'Account locked', attempt: 5 } },
-  { id: 'EVT-9036', timestamp: '2024-06-28 11:05:44', user: 'abajaj@citymontessori.edu', role: 'Admin', action: 'UPDATE', resource: 'Fee Structure', status: 'Success', ipAddress: '203.0.113.55', payload: { previous: { tuitionFee: 4000 }, new: { tuitionFee: 4500 } } },
-  { id: 'EVT-9035', timestamp: '2024-06-28 09:15:20', user: 'rpatel@brightfuture.edu', role: 'Teacher', action: 'LOGIN', resource: 'Authentication', status: 'Success', ipAddress: '198.51.100.22', payload: { userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' } },
-  { id: 'EVT-9034', timestamp: '2024-06-27 15:45:10', user: 'admin@schoolerp.com', role: 'Super Admin', action: 'CREATE', resource: 'Subscription Plan', status: 'Success', ipAddress: '192.168.1.45', payload: { planName: 'Enterprise Plus', price: 999990 } },
-  { id: 'EVT-9033', timestamp: '2024-06-27 10:22:30', user: 'msharma@dps.edu', role: 'Principal', action: 'DELETE', resource: 'Notice Board', status: 'Failure', ipAddress: '203.0.113.88', payload: { error: 'Insufficient permissions (Requires Super Admin)' } },
-];
-
+// No mock data needed, we use real API
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<Status, string> = {
   Success: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
@@ -58,29 +46,43 @@ export default function AuditLogPage() {
   const [sortCol, setSortCol]       = useState<keyof AuditLog>('timestamp');
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [logs]                      = useState<AuditLog[]>(INIT_LOGS);
+  const { audit: rawLogs, isLoading } = useAudit();
+
+  const mappedLogs: AuditLog[] = useMemo(() => {
+    return (rawLogs || []).map((l: any) => ({
+      id: l._id || l.id,
+      timestamp: l.timestamp ? new Date(l.timestamp).toLocaleString() : new Date(l.createdAt || Date.now()).toLocaleString(),
+      user: l.userEmail || l.userId || 'Unknown',
+      role: l.role || 'Unknown',
+      action: (l.action || 'UPDATE') as ActionType,
+      resource: l.resource || 'System',
+      status: (l.status || 'Success') as Status,
+      ipAddress: l.ipAddress || 'Unknown',
+      payload: l.payload || {},
+    }));
+  }, [rawLogs]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
     let failedLogins = 0;
     let criticalActions = 0;
 
-    logs.forEach(l => {
+    mappedLogs.forEach(l => {
       if (l.action === 'LOGIN' && l.status === 'Failure') failedLogins++;
       if (l.action === 'DELETE' || l.action === 'EXPORT') criticalActions++;
     });
     
     return {
-      total: logs.length, // simulating "today's events" for the mock
+      total: mappedLogs.length, // simulating "today's events" for the mock
       failedLogins,
       criticalActions,
       activeAdmins: 3,
     };
-  }, [logs]);
+  }, [mappedLogs]);
 
   // ── Filter + sort ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let rows = [...logs];
+    let rows = [...mappedLogs];
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(l =>
@@ -95,7 +97,7 @@ export default function AuditLogPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return rows;
-  }, [search, actionFilter, statusFilter, sortCol, sortDir, logs]);
+  }, [search, actionFilter, statusFilter, sortCol, sortDir, mappedLogs]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

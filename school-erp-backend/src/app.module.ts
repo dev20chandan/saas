@@ -10,6 +10,8 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { StatsModule } from './stats/stats.module';
 import { LoggerMiddleware } from './logger.middleware';
+import { SupportModule } from './support/support.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { LoggerMiddleware } from './logger.middleware';
     UsersModule,
     AuthModule,
     StatsModule,
+    SupportModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [

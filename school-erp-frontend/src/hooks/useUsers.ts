@@ -9,7 +9,7 @@ export function useUsers(limit: number = 1000) {
   });
 
   return {
-    users: data?.data || [],
+    users: data?.users || [],
     isLoading,
     isError: error,
     mutate,

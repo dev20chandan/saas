@@ -9,7 +9,7 @@ export function useSchools() {
   });
 
   return {
-    schools: data?.data || [],
+    schools: data?.schools || [],
     isLoading,
     isError: error,
     mutate,

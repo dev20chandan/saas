@@ -3,6 +3,7 @@
 import React, { useState, useMemo, Fragment } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
+import { useSupport } from '@/hooks/useSupport';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Status   = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
@@ -19,20 +20,7 @@ interface Ticket {
   description:  string;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-const INIT_TICKETS: Ticket[] = [
-  { id: 'TKT-1042', subject: 'Login issue for parents portal', schoolName: 'Greenfield International', submitter: 'Rahul Sharma', priority: 'High', status: 'Open', date: 'Just now', description: 'Parents are reporting they cannot log into the portal. They are getting a 500 error after entering credentials.' },
-  { id: 'TKT-1041', subject: 'Need help with bulk student upload', schoolName: 'Sunrise Public School', submitter: 'Anita Desai', priority: 'Medium', status: 'In Progress', date: '2 hours ago', description: 'I am trying to upload a CSV of 500 new students but it fails at row 250. Can you please check the attached file?' },
-  { id: 'TKT-1040', subject: 'Payment gateway integration failed', schoolName: 'City Montessori School', submitter: 'Vikram Singh', priority: 'High', status: 'In Progress', date: '5 hours ago', description: 'The Razorpay integration seems to be failing for the last 5 transactions. Error code: RZ-402.' },
-  { id: 'TKT-1039', subject: 'How to generate report cards?', schoolName: 'Bright Future Academy', submitter: 'Priya Patel', priority: 'Low', status: 'Resolved', date: '1 day ago', description: 'Can you guide me on how to generate the final term report cards for Class 10?' },
-  { id: 'TKT-1038', subject: 'Update school logo on dashboard', schoolName: 'Delhi Public School', submitter: 'Suresh Kumar', priority: 'Low', status: 'Closed', date: '2 days ago', description: 'We have updated our school logo. Please find the high-res version attached and update it on our main dashboard.' },
-  { id: 'TKT-1037', subject: 'Attendance not syncing in app', schoolName: 'Ryan International School', submitter: 'Neha Gupta', priority: 'Medium', status: 'Open', date: '2 days ago', description: 'Teachers marked attendance today but it is not reflecting on the parent mobile app.' },
-  { id: 'TKT-1036', subject: 'Cannot delete duplicate teacher record', schoolName: 'The Heritage School', submitter: 'Amit Verma', priority: 'Low', status: 'Resolved', date: '3 days ago', description: 'There is a duplicate entry for Mr. Sharma. When I try to delete it, it says "Cannot delete record with linked classes".' },
-  { id: 'TKT-1035', subject: 'Server is very slow since morning', schoolName: 'Presidium School', submitter: 'Kavita Reddy', priority: 'High', status: 'Closed', date: '4 days ago', description: 'The entire ERP is lagging. It takes 15 seconds to load the student list.' },
-  { id: 'TKT-1034', subject: 'Feature request: Add sibling discount', schoolName: 'Kendriya Vidyalaya No. 1', submitter: 'Ramesh Babu', priority: 'Low', status: 'Closed', date: '5 days ago', description: 'We need an automated way to apply a 10% discount to siblings in the fee module.' },
-  { id: 'TKT-1033', subject: 'Timetable clash error', schoolName: 'La Martiniere College', submitter: 'Meena Iyer', priority: 'Medium', status: 'Open', date: '1 week ago', description: 'The auto-generator is scheduling two teachers in the same class at 10 AM.' },
-];
-
+// No mock data needed, we use real API
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<Status, string> = {
   Open:          'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
@@ -57,7 +45,20 @@ export default function SupportTicketsPage() {
   const [sortCol, setSortCol]       = useState<keyof Ticket>('id');
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>('desc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [tickets]                   = useState<Ticket[]>(INIT_TICKETS);
+  const { support: rawTickets, isLoading } = useSupport();
+
+  const mappedTickets: Ticket[] = useMemo(() => {
+    return (rawTickets || []).map((t: any) => ({
+      id: t._id || t.id,
+      subject: t.subject || 'No Subject',
+      schoolName: t.schoolName || t.schoolId || 'Unknown',
+      submitter: t.submitter || 'Unknown',
+      priority: (t.priority || 'Low') as Priority,
+      status: (t.status || 'Open') as Status,
+      date: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Unknown',
+      description: t.description || '',
+    }));
+  }, [rawTickets]);
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => {
@@ -65,7 +66,7 @@ export default function SupportTicketsPage() {
     let inProgress = 0;
     let resolved = 0; // simulating resolved today/recently
 
-    tickets.forEach(t => {
+    mappedTickets.forEach(t => {
       if (t.status === 'Open') open++;
       if (t.status === 'In Progress') inProgress++;
       if (t.status === 'Resolved' || t.status === 'Closed') resolved++;
@@ -77,11 +78,11 @@ export default function SupportTicketsPage() {
       resolved,
       avgResponse: '1h 24m',
     };
-  }, [tickets]);
+  }, [mappedTickets]);
 
   // ── Filter + sort ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let rows = [...tickets];
+    let rows = [...mappedTickets];
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(t =>
@@ -97,7 +98,7 @@ export default function SupportTicketsPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return rows;
-  }, [search, statusFilter, priorityFilter, sortCol, sortDir, tickets]);
+  }, [search, statusFilter, priorityFilter, sortCol, sortDir, mappedTickets]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

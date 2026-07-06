@@ -6,6 +6,7 @@ import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 import { useAuth } from '@/lib/AuthContext';
 import { canPerform } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { useSchools } from '@/hooks/useSchools';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Status = 'Active' | 'Trial' | 'Expired' | 'Suspended';
@@ -28,48 +29,7 @@ interface School {
   operator:   string;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-const INIT_SCHOOLS: School[] = [
-  { id: 'SCH001', name: 'Greenfield International School', code: 'GIS-001', type: 'CBSE', city: 'New Delhi', state: 'Delhi', plan: 'Premium', status: 'Active', students: 2840, teachers: 142, joined: 'Jan 10, 2024', email: 'admin@greenfield.edu.in', phone: '+91 98765 43210', operator: 'Priya Sharma' },
-  { id: 'SCH002', name: 'Sunrise Public School', code: 'SPS-002', type: 'ICSE', city: 'Mumbai', state: 'Maharashtra', plan: 'Standard', status: 'Trial', students: 1200, teachers: 68, joined: 'Mar 22, 2024', email: 'info@sunrisepublic.edu.in', phone: '+91 87654 32109', operator: 'Rahul Verma' },
-  { id: 'SCH003', name: 'City Montessori School', code: 'CMS-003', type: 'CBSE', city: 'Lucknow', state: 'Uttar Pradesh', plan: 'Enterprise', status: 'Active', students: 6200, teachers: 310, joined: 'Nov 5, 2023', email: 'contact@cms.edu.in', phone: '+91 76543 21098', operator: 'Sneha Patel' },
-  { id: 'SCH004', name: 'Bright Future Academy', code: 'BFA-004', type: 'State Board', city: 'Chennai', state: 'Tamil Nadu', plan: 'Basic', status: 'Trial', students: 480, teachers: 28, joined: 'Apr 18, 2024', email: 'admin@brightfuture.edu.in', phone: '+91 65432 10987', operator: 'Amit Kumar' },
-  { id: 'SCH005', name: 'Delhi Public School', code: 'DPS-005', type: 'CBSE', city: 'Bangalore', state: 'Karnataka', plan: 'Premium', status: 'Active', students: 3400, teachers: 175, joined: 'Feb 14, 2024', email: 'dps@bangalore.edu.in', phone: '+91 54321 09876', operator: 'Neha Gupta' },
-  { id: 'SCH006', name: 'Ryan International School', code: 'RIS-006', type: 'CBSE', city: 'Pune', state: 'Maharashtra', plan: 'Standard', status: 'Expired', students: 1850, teachers: 92, joined: 'Jul 30, 2023', email: 'ryan@pune.edu.in', phone: '+91 43210 98765', operator: 'Vikas Singh' },
-  { id: 'SCH007', name: 'The Heritage School', code: 'THS-007', type: 'IB', city: 'Kolkata', state: 'West Bengal', plan: 'Enterprise', status: 'Active', students: 2100, teachers: 108, joined: 'Sep 12, 2023', email: 'info@heritageschool.edu.in', phone: '+91 32109 87654', operator: 'Anjali Desai' },
-  { id: 'SCH008', name: 'Presidium School', code: 'PRE-008', type: 'CBSE', city: 'Gurgaon', state: 'Haryana', plan: 'Premium', status: 'Active', students: 1600, teachers: 84, joined: 'May 7, 2024', email: 'presidium@gurgaon.edu.in', phone: '+91 21098 76543', operator: 'Sanjay Reddy' },
-  { id: 'SCH009', name: 'Kendriya Vidyalaya No. 1', code: 'KV-009', type: 'CBSE', city: 'Hyderabad', state: 'Telangana', plan: 'Basic', status: 'Active', students: 900, teachers: 52, joined: 'Aug 19, 2023', email: 'kv1@hyderabad.edu.in', phone: '+91 10987 65432', operator: 'Pooja Iyer' },
-  { id: 'SCH010', name: 'La Martiniere College', code: 'LMC-010', type: 'ICSE', city: 'Lucknow', state: 'Uttar Pradesh', plan: 'Standard', status: 'Suspended', students: 1400, teachers: 76, joined: 'Oct 3, 2023', email: 'lmc@lucknow.edu.in', phone: '+91 09876 54321', operator: 'Ravi Teja' },
-  { id: 'SCH011', name: "St. Xavier's High School", code: 'SXH-011', type: 'ICSE', city: 'Ahmedabad', state: 'Gujarat', plan: 'Standard', status: 'Active', students: 1750, teachers: 88, joined: 'Dec 1, 2023', email: 'xaviers@ahmedabad.edu.in', phone: '+91 98760 43211', operator: 'Kavita Joshi' },
-  { id: 'SCH012', name: 'Amity International School', code: 'AIS-012', type: 'CBSE', city: 'Noida', state: 'Uttar Pradesh', plan: 'Enterprise', status: 'Active', students: 5200, teachers: 260, joined: 'Jun 15, 2023', email: 'amity@noida.edu.in', phone: '+91 87651 32100', operator: 'Manish Arora' },
-];
-
-const SCHOOL_USERS: Record<string, { name: string; role: string; status: string }[]> = {
-  SCH001: [
-    { name: 'Priya Sharma', role: 'School Admin', status: 'Active' },
-    { name: 'Rohit Mehta', role: 'Teacher', status: 'Active' },
-    { name: 'Anika Verma', role: 'Staff', status: 'Active' },
-  ],
-  SCH002: [
-    { name: 'Rahul Verma', role: 'School Admin', status: 'Active' },
-    { name: 'Nisha Khan', role: 'Teacher', status: 'Trial' },
-    { name: 'Rakesh Patel', role: 'Staff', status: 'Active' },
-  ],
-  SCH003: [
-    { name: 'Sneha Patel', role: 'School Admin', status: 'Active' },
-    { name: 'Arjun Singh', role: 'Teacher', status: 'Active' },
-    { name: 'Mona Gupta', role: 'Parent', status: 'Active' },
-  ],
-  SCH004: [
-    { name: 'Amit Kumar', role: 'School Admin', status: 'Locked' },
-    { name: 'Pallavi Joshi', role: 'Teacher', status: 'Trial' },
-  ],
-  SCH005: [
-    { name: 'Neha Gupta', role: 'School Admin', status: 'Active' },
-    { name: 'Karan Rao', role: 'Teacher', status: 'Active' },
-    { name: 'Sana Ali', role: 'Staff', status: 'Active' },
-  ],
-};
+// No mock data needed, we use real API
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<Status, string> = {
@@ -534,48 +494,34 @@ export default function SchoolsPage() {
   const [sortCol, setSortCol]       = useState<keyof School>('name');
   const [sortDir, setSortDir]       = useState<'asc' | 'desc'>('asc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [schools, setSchools]       = useState<School[]>([]);
-  const [loading, setLoading]       = useState(true);
   const [showModal, setShowModal]   = useState(false);
   const [toast, setToast]           = useState<string | null>(null);
+  const { schools: rawSchools, isLoading, mutate } = useSchools();
 
-  async function fetchSchools() {
-    try {
-      setLoading(true);
-      const data = await api.get('/schools?page=1&limit=100');
-      const mapped = (data.schools || []).map((s: any) => ({
-        id: s._id,
-        name: s.name,
-        code: s.code,
-        type: s.type || 'CBSE',
-        city: s.city,
-        state: s.state,
-        plan: s.plan || 'Basic',
-        status: s.status || 'Trial',
-        students: s.students || 0,
-        teachers: s.teachers || 0,
-        joined: new Date(s.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
-        email: s.email,
-        phone: s.phone,
-        operator: s.operator || s.principal || '—',
-      }));
-      setSchools(mapped);
-    } catch (err) {
-      console.error('Failed to fetch schools:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchSchools();
-  }, []);
+  const mappedSchools: School[] = useMemo(() => {
+    return (rawSchools || []).map((s: any) => ({
+      id: s._id || s.id,
+      name: s.name,
+      code: s.code,
+      type: s.type || 'CBSE',
+      city: s.city || 'Unknown',
+      state: s.state || 'Unknown',
+      plan: s.plan || 'Basic',
+      status: s.status || 'Trial',
+      students: s.students || 0,
+      teachers: s.teachers || 0,
+      joined: new Date(s.createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      email: s.email || '',
+      phone: s.phone || '',
+      operator: s.operator || s.principal || '—',
+    }));
+  }, [rawSchools]);
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this school?')) return;
     try {
       await api.delete(`/schools/${id}`);
-      setSchools(prev => prev.filter(s => s.id !== id));
+      mutate();
       setToast('School deleted successfully');
     } catch (err: any) {
       alert(err.message || 'Failed to delete school');
@@ -584,16 +530,16 @@ export default function SchoolsPage() {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
-    total:     schools.length,
-    active:    schools.filter(s => s.status === 'Active').length,
-    trial:     schools.filter(s => s.status === 'Trial').length,
-    expired:   schools.filter(s => s.status === 'Expired').length,
-    suspended: schools.filter(s => s.status === 'Suspended').length,
-  }), [schools]);
+    total:     mappedSchools.length,
+    active:    mappedSchools.filter(s => s.status === 'Active').length,
+    trial:     mappedSchools.filter(s => s.status === 'Trial').length,
+    expired:   mappedSchools.filter(s => s.status === 'Expired').length,
+    suspended: mappedSchools.filter(s => s.status === 'Suspended').length,
+  }), [mappedSchools]);
 
   // ── Filter + sort ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let rows = [...schools];
+    let rows = [...mappedSchools];
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(s =>
@@ -609,7 +555,7 @@ export default function SchoolsPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return rows;
-  }, [search, statusFilter, planFilter, sortCol, sortDir, schools]);
+  }, [search, statusFilter, planFilter, sortCol, sortDir, mappedSchools]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -647,7 +593,7 @@ export default function SchoolsPage() {
   }
 
   function handleRegistered(school: School) {
-    setSchools(prev => [school, ...prev]);
+    mutate();
     setShowModal(false);
     setToast(school.name);
   }
@@ -855,7 +801,7 @@ export default function SchoolsPage() {
                               </span>
                             </div>
                             <div className="grid gap-2 sm:grid-cols-3">
-                              {(SCHOOL_USERS[school.id] ?? [{ name: school.operator, role: 'School Admin', status: 'Active' }]).map((member) => (
+                              {([{ name: school.operator, role: 'School Admin', status: 'Active' }]).map((member) => (
                                 <div key={`${school.id}-${member.name}`} className="rounded-xl border border-slate-100 dark:border-[#2a2d3a] bg-slate-50/80 dark:bg-white/[0.03] px-3 py-2">
                                   <div className="flex items-center justify-between gap-2">
                                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{member.name}</p>

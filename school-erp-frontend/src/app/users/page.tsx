@@ -6,6 +6,7 @@ import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 import { useAuth } from '@/lib/AuthContext';
 import { canPerform } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { useUsers } from '@/hooks/useUsers';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Role = 'System Admin' | 'School Admin' | 'Teacher' | 'Staff' | 'Parent';
@@ -25,22 +26,7 @@ interface User {
   createdAt: string;
 }
 
-// ── Mock Data ─────────────────────────────────────────────────────────────────
-const INIT_USERS: User[] = [
-  { id: 'USR001', name: 'John Doe', email: 'john.admin@erp.com', role: 'System Admin', schoolId: 'ALL', operator: 'Platform Owner', school: 'All Schools', status: 'Active', lastLogin: 'Today, 09:41 AM', phone: '+91 98765 00001', createdAt: 'Jan 10, 2024' },
-  { id: 'USR002', name: 'Priya Sharma', email: 'priya.s@greenfield.edu.in', role: 'School Admin', schoolId: 'SCH001', operator: 'School Owner', school: 'Greenfield International School', status: 'Active', lastLogin: 'Today, 08:30 AM', phone: '+91 98765 00002', createdAt: 'Jan 15, 2024' },
-  { id: 'USR003', name: 'Rahul Verma', email: 'rahul.v@sunrisepublic.edu.in', role: 'Teacher', schoolId: 'SCH002', operator: 'Neha Kapoor', school: 'Sunrise Public School', status: 'Active', lastLogin: 'Yesterday, 04:15 PM', phone: '+91 98765 00003', createdAt: 'Mar 23, 2024' },
-  { id: 'USR004', name: 'Sneha Patel', email: 'sneha.p@cms.edu.in', role: 'Teacher', schoolId: 'SCH003', operator: 'Amit Joshi', school: 'City Montessori School', status: 'Pending', lastLogin: 'Never', phone: '+91 98765 00004', createdAt: 'Nov 6, 2023' },
-  { id: 'USR005', name: 'Amit Kumar', email: 'amit.k@brightfuture.edu.in', role: 'Staff', schoolId: 'SCH004', operator: 'Sanjay Mehta', school: 'Bright Future Academy', status: 'Locked', lastLogin: 'Apr 20, 2024', phone: '+91 98765 00005', createdAt: 'Apr 19, 2024' },
-  { id: 'USR006', name: 'Neha Gupta', email: 'neha.g@dps.edu.in', role: 'School Admin', schoolId: 'SCH005', operator: 'Pooja Nair', school: 'Delhi Public School', status: 'Active', lastLogin: 'Today, 10:05 AM', phone: '+91 98765 00006', createdAt: 'Feb 15, 2024' },
-  { id: 'USR007', name: 'Vikas Singh', email: 'vikas.s@ryan.edu.in', role: 'Teacher', schoolId: 'SCH006', operator: 'Arjun Verma', school: 'Ryan International School', status: 'Inactive', lastLogin: 'Jul 31, 2023', phone: '+91 98765 00007', createdAt: 'Jul 30, 2023' },
-  { id: 'USR008', name: 'Anjali Desai', email: 'anjali.d@heritageschool.edu.in', role: 'Staff', schoolId: 'SCH007', operator: 'Madhuri Rao', school: 'The Heritage School', status: 'Active', lastLogin: 'Today, 07:50 AM', phone: '+91 98765 00008', createdAt: 'Sep 13, 2023' },
-  { id: 'USR009', name: 'Sanjay Reddy', email: 'sanjay.r@presidium.edu.in', role: 'Parent', schoolId: 'SCH008', operator: 'Ritu Sharma', school: 'Presidium School', status: 'Active', lastLogin: '2 Days Ago', phone: '+91 98765 00009', createdAt: 'May 8, 2024' },
-  { id: 'USR010', name: 'Pooja Iyer', email: 'pooja.i@kv1.edu.in', role: 'Teacher', schoolId: 'SCH009', operator: 'Mahesh Gupta', school: 'Kendriya Vidyalaya No. 1', status: 'Active', lastLogin: 'Today, 08:10 AM', phone: '+91 98765 00010', createdAt: 'Aug 20, 2023' },
-  { id: 'USR011', name: 'Ravi Teja', email: 'ravi.t@lmc.edu.in', role: 'School Admin', schoolId: 'SCH010', operator: 'Anita Roy', school: 'La Martiniere College', status: 'Locked', lastLogin: 'Oct 5, 2023', phone: '+91 98765 00011', createdAt: 'Oct 4, 2023' },
-  { id: 'USR012', name: 'Kavita Joshi', email: 'kavita.j@xaviers.edu.in', role: 'Teacher', schoolId: 'SCH011', operator: 'Father Joseph', school: "St. Xavier's High School", status: 'Active', lastLogin: 'Yesterday, 06:20 PM', phone: '+91 98765 00012', createdAt: 'Dec 2, 2023' },
-];
-
+// No mock data needed, we use real API
 // ── Helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE: Record<Status, string> = {
   Active: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
@@ -70,43 +56,29 @@ export default function UsersPage() {
   const [sortCol, setSortCol] = useState<keyof User>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { users: rawUsers, isLoading, mutate } = useUsers();
 
-  async function fetchUsers() {
-    try {
-      setLoading(true);
-      const data = await api.get('/users?page=1&limit=100');
-      const mapped = (data.users || []).map((u: any) => ({
-        id: u._id,
-        name: u.name,
-        email: u.email,
-        role: u.role as Role,
-        schoolId: u.schoolId,
-        school: u.school || '—',
-        operator: u.operator || '—',
-        status: (u.status || 'Active') as Status,
-        lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Never',
-        phone: u.phone || '—',
-        createdAt: new Date(u.createdAt || Date.now()).toLocaleDateString(),
-      }));
-      setUsers(mapped);
-    } catch (err) {
-      console.error('Failed to fetch users:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const mappedUsers: User[] = useMemo(() => {
+    return (rawUsers || []).map((u: any) => ({
+      id: u._id || u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role as Role,
+      schoolId: u.schoolId,
+      school: u.school || '—',
+      operator: u.operator || '—',
+      status: (u.status || 'Active') as Status,
+      lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Never',
+      phone: u.phone || '—',
+      createdAt: new Date(u.createdAt || Date.now()).toLocaleDateString(),
+    }));
+  }, [rawUsers]);
 
   async function handleDeleteUser(id: string) {
     if (!confirm('Are you sure you want to delete this user?')) return;
     try {
       await api.delete(`/users/${id}`);
-      setUsers(prev => prev.filter(u => u.id !== id));
+      mutate();
     } catch (err: any) {
       alert(err.message || 'Failed to delete user');
     }
@@ -114,16 +86,16 @@ export default function UsersPage() {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const stats = useMemo(() => ({
-    total: users.length,
-    active: users.filter(u => u.status === 'Active').length,
-    pending: users.filter(u => u.status === 'Pending').length,
-    locked: users.filter(u => u.status === 'Locked').length,
-    inactive: users.filter(u => u.status === 'Inactive').length,
-  }), [users]);
+    total: mappedUsers.length,
+    active: mappedUsers.filter(u => u.status === 'Active').length,
+    pending: mappedUsers.filter(u => u.status === 'Pending').length,
+    locked: mappedUsers.filter(u => u.status === 'Locked').length,
+    inactive: mappedUsers.filter(u => u.status === 'Inactive').length,
+  }), [mappedUsers]);
 
   // ── Filter + sort ──────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let rows = [...users];
+    let rows = [...mappedUsers];
     if (search) {
       const q = search.toLowerCase();
       rows = rows.filter(u =>
@@ -140,7 +112,7 @@ export default function UsersPage() {
       return sortDir === 'asc' ? cmp : -cmp;
     });
     return rows;
-  }, [search, statusFilter, roleFilter, sortCol, sortDir, users]);
+  }, [search, statusFilter, roleFilter, sortCol, sortDir, mappedUsers]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE) || 1;
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
