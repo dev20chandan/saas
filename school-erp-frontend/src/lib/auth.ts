@@ -1,0 +1,168 @@
+export type AdminRole = "Super Admin" | "Admin" | "Sub Admin";
+export type PermissionAction = "view" | "edit" | "delete";
+export type DashboardModule =
+  | "dashboard"
+  | "schools"
+  | "users"
+  | "subscriptions"
+  | "payments"
+  | "analytics"
+  | "support"
+  | "audit"
+  | "settings";
+
+export type ModulePermissions = Record<DashboardModule, Record<PermissionAction, boolean>>;
+
+export interface MockCredential {
+  email: string;
+  password: string;
+  role: AdminRole;
+}
+
+export const AUTH_STORAGE_KEYS = {
+  token: "token",
+  role: "role",
+  schoolId: "schoolId",
+  permissions: "permissions",
+} as const;
+
+export const DEFAULT_ROLE: AdminRole = "Super Admin";
+export const DEFAULT_PASSWORD = "School@123";
+
+export const MOCK_CREDENTIALS: MockCredential[] = [
+  { email: "owner@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Super Admin" },
+  { email: "admin@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Admin" },
+  { email: "subadmin@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Sub Admin" },
+];
+
+export const ROLE_DISPLAY_NAMES: Record<AdminRole, string> = {
+  "Super Admin": "Owner",
+  "Admin": "Admin",
+  "Sub Admin": "Sub Admin",
+};
+
+const ALL_MODULES: DashboardModule[] = [
+  "dashboard",
+  "schools",
+  "users",
+  "subscriptions",
+  "payments",
+  "analytics",
+  "support",
+  "audit",
+  "settings",
+];
+
+const createModulePermissions = (
+  view: boolean,
+  edit: boolean,
+  remove: boolean,
+): Record<PermissionAction, boolean> => ({
+  view,
+  edit,
+  delete: remove,
+});
+
+function createPermissionsForModules(
+  modules: Partial<Record<DashboardModule, Record<PermissionAction, boolean>>>,
+): ModulePermissions {
+  return ALL_MODULES.reduce((permissions, module) => {
+    permissions[module] = modules[module] ?? createModulePermissions(false, false, false);
+    return permissions;
+  }, {} as ModulePermissions);
+}
+
+export const DEFAULT_PERMISSIONS: Record<AdminRole, ModulePermissions> = {
+  "Super Admin": createPermissionsForModules(
+    Object.fromEntries(ALL_MODULES.map((module) => [module, createModulePermissions(true, true, true)])) as Partial<Record<DashboardModule, Record<PermissionAction, boolean>>>,
+  ),
+  Admin: createPermissionsForModules({
+    dashboard: createModulePermissions(true, true, false),
+    schools: createModulePermissions(true, true, false),
+    users: createModulePermissions(true, true, false),
+    subscriptions: createModulePermissions(true, true, false),
+    payments: createModulePermissions(true, true, false),
+    analytics: createModulePermissions(true, true, false),
+    support: createModulePermissions(true, false, false),
+  }),
+  "Sub Admin": createPermissionsForModules({
+    dashboard: createModulePermissions(true, false, false),
+    schools: createModulePermissions(true, false, false),
+    users: createModulePermissions(true, false, false),
+    support: createModulePermissions(true, false, false),
+  }),
+};
+
+export function isAdminRole(value: string | null | undefined): value is AdminRole {
+  return value === "Super Admin" || value === "Admin" || value === "Sub Admin";
+}
+
+export function normalizeRole(value: string | null | undefined): AdminRole {
+  return isAdminRole(value) ? value : DEFAULT_ROLE;
+}
+
+export function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function getRoleDisplayName(role: AdminRole) {
+  return ROLE_DISPLAY_NAMES[role];
+}
+
+export function getDefaultPermissions(role: AdminRole): ModulePermissions {
+  return DEFAULT_PERMISSIONS[role];
+}
+
+export function parsePermissions(value: string | null | undefined): ModulePermissions | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Partial<ModulePermissions>;
+    return createPermissionsForModules(parsed);
+  } catch {
+    return null;
+  }
+}
+
+export function hasModuleAccess(permissions: ModulePermissions, module: DashboardModule) {
+  return Boolean(permissions[module]?.view);
+}
+
+export function canPerform(
+  permissions: ModulePermissions,
+  module: DashboardModule,
+  action: PermissionAction,
+) {
+  return Boolean(permissions[module]?.[action]);
+}
+
+export function readStoredRole() {
+  if (typeof window === "undefined") {
+    return DEFAULT_ROLE;
+  }
+
+  return normalizeRole(localStorage.getItem(AUTH_STORAGE_KEYS.role));
+}
+
+export function readStoredPermissions() {
+  if (typeof window === "undefined") {
+    return DEFAULT_PERMISSIONS[DEFAULT_ROLE];
+  }
+
+  return parsePermissions(localStorage.getItem(AUTH_STORAGE_KEYS.permissions)) ?? getDefaultPermissions(readStoredRole());
+}
+
+export function resolveMockCredential(email: string, password: string) {
+  const normalizedEmail = normalizeEmail(email);
+  return MOCK_CREDENTIALS.find(
+    (credential) => credential.email === normalizedEmail && credential.password === password,
+  ) ?? null;
+}
+
+export function mapBackendRoleToFrontend(role: string): AdminRole {
+  if (role === 'System Admin') return 'Super Admin';
+  if (role === 'School Admin') return 'Admin';
+  return 'Sub Admin';
+}
