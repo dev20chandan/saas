@@ -1,71 +1,102 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+import axios, { AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-interface RequestOptions extends RequestInit {
+const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const BASE_URL = typeof window !== 'undefined' && envUrl.includes('localhost') 
+  ? `http://${window.location.hostname}:5000`
+  : envUrl;
+
+export interface RequestOptions extends AxiosRequestConfig {
   requireAuth?: boolean;
 }
+
+const axiosClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request Interceptor
+axiosClient.interceptors.request.use(
+  (config) => {
+    // Cast config to our extended type to read custom options
+    const customConfig = config as InternalAxiosRequestConfig & { requireAuth?: boolean };
+    const requireAuth = customConfig.requireAuth ?? true;
+
+    // If data is FormData, remove Content-Type so browser sets boundary correctly
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+    
+    if (requireAuth && typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response Interceptor
+axiosClient.interceptors.response.use(
+  (response) => {
+    if (response.status === 204) {
+      return {} as any;
+    }
+
+    const jsonResponse = response.data;
+    
+    // Unwrap the standardized backend response { success: true, data: T }
+    if (jsonResponse && typeof jsonResponse === 'object' && 'success' in jsonResponse) {
+      return jsonResponse.data;
+    }
+
+    return jsonResponse;
+  },
+  (error: AxiosError<any>) => {
+    let errorMsg = 'An error occurred';
+    
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      // Handle GlobalExceptionFilter format (data.error.message)
+      errorMsg = data?.error?.message || data?.message || errorMsg;
+      if (Array.isArray(errorMsg)) {
+        errorMsg = errorMsg.join(', ');
+      }
+      
+      if (status === 401 && typeof window !== 'undefined') {
+        // Clear auth store on 401 session expiry
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('schoolId');
+        localStorage.removeItem('permissions');
+      }
+    } else if (error.request) {
+      errorMsg = 'Network error, please check your connection.';
+    } else {
+      errorMsg = error.message;
+    }
+
+    return Promise.reject(new Error(errorMsg));
+  }
+);
 
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { requireAuth = true, headers: customHeaders, ...restOptions } = options;
-  const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-
-  const headers = new Headers(customHeaders);
+  const url = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   
-  if (!headers.has('Content-Type') && !(restOptions.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  if (requireAuth && typeof window !== 'undefined') {
-    const token = localStorage.getItem('token');
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-  }
-
-  const response = await fetch(url, {
-    ...restOptions,
-    headers,
-  });
-
-  if (!response.ok) {
-    let errorMsg = 'An error occurred';
-    try {
-      const errorData = await response.json();
-      // Handle new GlobalExceptionFilter format (errorData.error.message)
-      errorMsg = errorData?.error?.message || errorData.message || errorMsg;
-      if (Array.isArray(errorMsg)) {
-        errorMsg = errorMsg.join(', ');
-      }
-    } catch {
-      // JSON parsing failed, use statusText
-      errorMsg = response.statusText || errorMsg;
-    }
-    
-    if (response.status === 401 && typeof window !== 'undefined') {
-      // Clear auth store on 401 session expiry
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
-      localStorage.removeItem('schoolId');
-      localStorage.removeItem('permissions');
-      // optional: window.location.href = '/login';
-    }
-    throw new Error(errorMsg);
-  }
-
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  const jsonResponse = await response.json();
-
-  // Unwrap the standardized backend response { success: true, data: T }
-  if (jsonResponse && typeof jsonResponse === 'object' && 'success' in jsonResponse) {
-    return jsonResponse.data as T;
-  }
-
-  return jsonResponse as T;
+  // Pass along url and all custom options to the axios client
+  const config = { ...options, url } as any; 
+  
+  // Because our response interceptor unwraps the payload,
+  // the resolved value is directly the data of type T.
+  const response = await axiosClient.request<T>(config);
+  return response as unknown as T;
 }
 
 export const api = {
@@ -76,14 +107,14 @@ export const api = {
     apiRequest<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: body instanceof FormData ? body : JSON.stringify(body),
+      data: body,
     }),
     
   put: <T = any>(endpoint: string, body: any, options?: RequestOptions) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: body instanceof FormData ? body : JSON.stringify(body),
+      data: body,
     }),
     
   delete: <T = any>(endpoint: string, options?: RequestOptions) =>

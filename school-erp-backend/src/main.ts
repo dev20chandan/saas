@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
-import mongoSanitize from 'express-mongo-sanitize';
 import { AppModule } from './app.module';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -15,17 +14,15 @@ async function bootstrap() {
   // Security Headers
   app.use(helmet());
 
-  // Prevent NoSQL Injection
-  app.use(mongoSanitize());
 
   // Compression
   app.use(compression());
 
   // Strict CORS for frontend requests
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' 
-      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.com'] 
-      : '*', 
+    origin: process.env.NODE_ENV === 'production'
+      ? [process.env.FRONTEND_URL || 'https://your-frontend-domain.com']
+      : true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
@@ -69,7 +66,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 5000;
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`🚀 School ERP Backend running on: http://localhost:${port}`);
   console.log(`📑 Swagger UI available at: http://localhost:${port}/api/docs`);
 }
