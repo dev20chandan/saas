@@ -12,6 +12,7 @@ import { LoggerMiddleware } from './logger.middleware';
 import { SupportModule } from './support/support.module';
 import { AuditModule } from './audit/audit.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { AdminsModule } from './admins/admins.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { PrismaModule } from './prisma/prisma.module';
     StatsModule,
     SupportModule,
     AuditModule,
+    AdminsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,18 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Put,
-  Param,
-  Delete,
-  Query,
-  UsePipes,
-  ValidationPipe,
-  UseGuards,
-  Request,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, UsePipes, ValidationPipe, UseGuards, Request, ForbiddenException, } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
@@ -20,7 +6,6 @@ import { UpdateSchoolDto } from './dto/update-school.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { AuthRequest } from 'src/common/interceptors/auth-request.interface';
 
 
 @ApiTags('Schools')
@@ -31,9 +16,9 @@ export class SchoolsController {
   constructor(private readonly schoolsService: SchoolsService) { }
 
   @Post()
-  @Roles('System Admin')
+  @Roles('owner')
   @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: 'Create a new school (System Admin only)' })
+  @ApiOperation({ summary: 'Create a new school (owner only)' })
   @ApiResponse({ status: 201, description: 'School successfully created.' })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   create(@Body() createSchoolDto: CreateSchoolDto) {
@@ -41,8 +26,8 @@ export class SchoolsController {
   }
 
   @Get()
-  @Roles('System Admin')
-  @ApiOperation({ summary: 'Get all schools with pagination, filter, and search options (System Admin only)' })
+  @Roles('owner')
+  @ApiOperation({ summary: 'Get all schools with pagination, filter, and search options (owner only)' })
   @ApiQuery({ name: 'search', required: false, description: 'Search term for school name, email, or subdomain' })
   @ApiQuery({ name: 'status', required: false, description: 'Filter schools by status (e.g., active, suspended, pending)' })
   @ApiQuery({ name: 'plan', required: false, description: 'Filter schools by plan (e.g., Basic, Standard, Premium)' })
@@ -66,8 +51,8 @@ export class SchoolsController {
   }
 
   @Get('stats')
-  @Roles('System Admin')
-  @ApiOperation({ summary: 'Get school dashboard/analytical stats (System Admin only)' })
+  @Roles('owner')
+  @ApiOperation({ summary: 'Get school dashboard/analytical stats (owner only)' })
   @ApiResponse({ status: 200, description: 'Stats retrieved successfully.' })
   getStats() {
     return this.schoolsService.getStats();
@@ -80,7 +65,7 @@ export class SchoolsController {
   @ApiResponse({ status: 403, description: 'Forbidden. You do not have access to this school.' })
   @ApiResponse({ status: 404, description: 'School not found.' })
   findOne(@Request() req, @Param('id') id: string) {
-    if (req.user.role !== 'System Admin' && req.user.schoolId !== id) {
+    if (req.user.role !== 'owner' && req.user.schoolId !== id) {
       throw new ForbiddenException('You do not have access to this school');
     }
     return this.schoolsService.findOne(id);
@@ -94,11 +79,11 @@ export class SchoolsController {
   @ApiResponse({ status: 403, description: 'Forbidden. You do not have access to this school.' })
   @ApiResponse({ status: 404, description: 'School not found.' })
   update(@Request() req, @Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
-    if (req.user.role !== 'System Admin' && req.user.schoolId !== id) {
+    if (req.user.role !== 'owner' && req.user.schoolId !== id) {
       throw new ForbiddenException('You do not have access to this school');
     }
-    // Prevent non-System Admin from changing core plan billing metrics or Board validation code
-    if (req.user.role !== 'System Admin') {
+    // Prevent non-owner from changing core plan billing metrics or Board validation code
+    if (req.user.role !== 'owner') {
       delete (updateSchoolDto as any).plan;
       delete (updateSchoolDto as any).status;
       delete (updateSchoolDto as any).code;
@@ -107,8 +92,8 @@ export class SchoolsController {
   }
 
   @Delete(':id')
-  @Roles('System Admin')
-  @ApiOperation({ summary: 'Delete school by ID (System Admin only)' })
+  @Roles('owner')
+  @ApiOperation({ summary: 'Delete school by ID (owner only)' })
   @ApiParam({ name: 'id', description: 'School ID' })
   @ApiResponse({ status: 200, description: 'School successfully deleted.' })
   @ApiResponse({ status: 404, description: 'School not found.' })

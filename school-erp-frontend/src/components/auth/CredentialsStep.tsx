@@ -45,7 +45,7 @@ export default function CredentialsStep({
       localStorage.setItem('token', mockAccessToken);
       localStorage.setItem('role', credential.role);
       localStorage.setItem('permissions', JSON.stringify(getDefaultPermissions(credential.role)));
-      onSuccess(mockAccessToken, credential.role, credential.role === 'Super Admin' ? '' : schoolId);
+      onSuccess(mockAccessToken, credential.role, credential.role === 'owner' ? '' : schoolId);
     } catch {
       setError('Server se connect nahi ho paya. Dobara try karo.');
     } finally {

@@ -2,12 +2,34 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { ICONS } from '@/components/dashboard/Sidebar';
 
-const fetcher = (url: string) => api.get(url);
+// Best Practice: Define interfaces for expected data
+export interface Activity {
+  type: string;
+  text: string;
+  time: string;
+  color: string;
+}
+
+export interface DashboardStats {
+  totalStudents?: number;
+  totalTeachers?: number;
+  counters?: {
+    schoolAdmins?: number;
+    [key: string]: any;
+  };
+  recentActivities?: Activity[];
+  [key: string]: any;
+}
 
 export function useStats() {
-  const { data: stats, error, isLoading, mutate } = useSWR('/stats/dashboard', fetcher, {
-    revalidateOnFocus: false,
-  });
+  // Best Practice: Use centralized api.fetcher and generic types
+  const { data: stats, error, isLoading, mutate } = useSWR<DashboardStats>(
+    '/stats/dashboard', 
+    api.fetcher, 
+    {
+      revalidateOnFocus: false,
+    }
+  );
 
   if (!stats) return { stats: null, isLoading, isError: error, mutate };
 
@@ -25,7 +47,7 @@ export function useStats() {
     { role: 'Admins',   count: adminCount,    percent: totalUsers ? Math.round((adminCount/totalUsers)*100) : 0, color: 'bg-orange-500' },
   ];
 
-  let dynamicActivities = (stats.recentActivities || []).map((act: any, i: number) => ({
+  let dynamicActivities = (stats.recentActivities || []).map((act, i) => ({
     id: i + 1,
     title: act.type,
     desc: act.text,

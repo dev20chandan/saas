@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { AdminsService } from '../admins/admins.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -9,6 +10,7 @@ import { RegisterDto } from './dto/register.dto';
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
+    private readonly adminsService: AdminsService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -17,7 +19,14 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
+    let accountType: 'admin' | 'user' = 'admin';
+    let user: any = await this.adminsService.findByEmail(loginDto.email);
+    
+    if (!user) {
+      user = await this.usersService.findByEmail(loginDto.email);
+      accountType = 'user';
+    }
+
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -36,9 +45,14 @@ export class AuthService {
       email: user.email,
       role: user.role,
       schoolId: user.schoolId,
+      type: accountType,
     };
 
-    await this.usersService.update(user.id, { lastLogin: new Date() } as any);
+    if (accountType === 'admin') {
+      await this.adminsService.update(user.id, { lastLogin: new Date() } as any);
+    } else {
+      await this.usersService.update(user.id, { lastLogin: new Date() } as any);
+    }
 
     return {
       token: this.jwtService.sign(payload),

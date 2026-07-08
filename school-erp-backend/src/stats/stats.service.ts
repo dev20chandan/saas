@@ -55,8 +55,8 @@ export class StatsService {
         totalSchools = 1;
       }
 
-      schoolAdmins = await this.prisma.user.count({
-        where: { schoolId, role: 'School Admin' },
+      schoolAdmins = await this.prisma.admin.count({
+        where: { schoolId, role: 'Admin' },
       });
       const dbTeachers = await this.prisma.user.count({
         where: { schoolId, role: 'Teacher' },
@@ -76,7 +76,7 @@ export class StatsService {
       activeSchools = await this.prisma.school.count({
         where: { status: { in: ['Active', 'Trial'] } },
       });
-      schoolAdmins = await this.prisma.user.count({ where: { role: 'School Admin' } });
+      schoolAdmins = await this.prisma.admin.count({ where: { role: 'Admin' } });
 
       const schoolAggregations = await this.prisma.school.aggregate({
         _sum: {

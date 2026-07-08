@@ -14,20 +14,20 @@ export class StatsController {
   @Get('dashboard')
   @ApiOperation({ summary: 'Get overview dashboard statistics' })
   @ApiResponse({ status: 200, description: 'Dashboard stats retrieved successfully.' })
-  @ApiQuery({ name: 'schoolId', required: false, description: 'School parameter (System Admin only)' })
+  @ApiQuery({ name: 'schoolId', required: false, description: 'School parameter (owner only)' })
   getDashboardStats(@Request() req, @Query('schoolId') schoolId?: string) {
-    // If user is a System Admin, they can filter by any schoolId, else restrict to request user's schoolId
-    const targetSchoolId = req.user.role === 'System Admin' ? (schoolId || 'ALL') : req.user.schoolId;
+    // If user is a owner, they can filter by any schoolId, else restrict to request user's schoolId
+    const targetSchoolId = req.user.role === 'owner' ? (schoolId || 'ALL') : req.user.schoolId;
     return this.statsService.getDashboardStats(targetSchoolId);
   }
 
   @Get('activities')
   @ApiOperation({ summary: 'Get recent activities/logs' })
   @ApiQuery({ name: 'limit', required: false, description: 'Limit number of activity logs to return (default 5)' })
-  @ApiQuery({ name: 'schoolId', required: false, description: 'School parameter (System Admin only)' })
+  @ApiQuery({ name: 'schoolId', required: false, description: 'School parameter (owner only)' })
   @ApiResponse({ status: 200, description: 'Activities retrieved successfully.' })
   getRecentActivities(@Request() req, @Query('limit') limit?: string, @Query('schoolId') schoolId?: string) {
-    const targetSchoolId = req.user.role === 'System Admin' ? schoolId : req.user.schoolId;
+    const targetSchoolId = req.user.role === 'owner' ? schoolId : req.user.schoolId;
     return this.statsService.getRecentActivities(
       limit ? parseInt(limit, 10) : 5,
       targetSchoolId,

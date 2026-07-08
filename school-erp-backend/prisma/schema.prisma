@@ -32,13 +32,30 @@ model School {
   activities Activity[]
 }
 
+model Admin {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  role       String    @default("Admin")
+  schoolId   String    @default("ALL")
+  schoolName String?   
+  operator   String?
+  status     String    @default("Active")
+  phone      String?
+  lastLogin  DateTime?
+  settings   Json      @default("{}")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
 model User {
   id         String    @id @default(uuid())
   name       String
   email      String    @unique
   password   String
   role       String    @default("Teacher")
-  schoolId   String    @default("ALL")
+  schoolId   String    
   schoolUuid String?   
   schoolName String?   
   operator   String?

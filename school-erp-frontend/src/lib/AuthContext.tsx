@@ -52,7 +52,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsReady(true);
     }, 0);
 
-    return () => window.clearTimeout(timeoutId);
+    // Listen for global unauthorized events from the api client
+    const handleUnauthorized = () => {
+      signOut();
+      // Optionally redirect to login page here, e.g. window.location.href = '/login';
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
   }, []);
 
   function signIn({

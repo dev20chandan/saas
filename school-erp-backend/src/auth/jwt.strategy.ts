@@ -4,11 +4,14 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
 
+import { AdminsService } from '../admins/admins.service';
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
+    private readonly adminsService: AdminsService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -18,7 +21,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const user = await this.usersService.findByEmail(payload.email);
+    let user;
+    if (payload.type === 'admin') {
+      user = await this.adminsService.findByEmail(payload.email);
+    } else {
+      user = await this.usersService.findByEmail(payload.email);
+    }
+
     if (!user) {
       throw new UnauthorizedException('User not found or session expired');
     }

@@ -37,20 +37,20 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Roles('System Admin', 'School Admin')
+  @Roles('owner', 'Admin')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({
-    summary: 'Create a new user (System Admin or School Admin only)',
+    summary: 'Create a new user (owner or Admin only)',
   })
   @ApiResponse({ status: 201, description: 'User successfully created.' })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async create(@Request() req, @Body() createUserDto: CreateUserDto) {
-    if (req.user.role === 'School Admin') {
+    if (req.user.role === 'Admin') {
       createUserDto.schoolId = req.user.schoolId;
-      if (createUserDto.role === 'System Admin') {
+      if (createUserDto.role === 'owner') {
         throw new ForbiddenException(
-          'School Admins cannot create System Admin users',
+          'Admins cannot create owner users',
         );
       }
     }
@@ -58,7 +58,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles('System Admin', 'School Admin')
+  @Roles('owner', 'Admin')
   @ApiOperation({
     summary: 'Get all users with filter, search, and pagination',
   })
@@ -107,7 +107,7 @@ export class UsersController {
     @Query('limit') limit?: string,
   ) {
     let targetSchoolId = schoolId;
-    if (req.user.role === 'School Admin') {
+    if (req.user.role === 'Admin') {
       targetSchoolId = req.user.schoolId;
     }
     return this.usersService.findAll({
@@ -121,7 +121,7 @@ export class UsersController {
   }
 
   @Get('stats')
-  @Roles('System Admin', 'School Admin')
+  @Roles('owner', 'Admin')
   @ApiOperation({
     summary: 'Get user dashboard statistics, optionally filtered by school ID',
   })
@@ -133,7 +133,7 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Stats retrieved successfully.' })
   getStats(@Request() req, @Query('schoolId') schoolId?: string) {
     const targetSchoolId =
-      req.user.role === 'System Admin' ? schoolId : req.user.schoolId;
+      req.user.role === 'owner' ? schoolId : req.user.schoolId;
     return this.usersService.getStats(targetSchoolId);
   }
 
@@ -150,12 +150,12 @@ export class UsersController {
     if (req.user.id === id) {
       return this.usersService.findOne(id);
     }
-    if (req.user.role !== 'System Admin' && req.user.role !== 'School Admin') {
+    if (req.user.role !== 'owner' && req.user.role !== 'Admin') {
       throw new ForbiddenException('You do not have access to view this user');
     }
     const userObj = await this.usersService.findOne(id);
     if (
-      req.user.role === 'School Admin' &&
+      req.user.role === 'Admin' &&
       userObj.schoolId !== req.user.schoolId
     ) {
       throw new ForbiddenException(
@@ -182,35 +182,35 @@ export class UsersController {
 
     if (
       !isSelfUpdate &&
-      req.user.role !== 'System Admin' &&
-      req.user.role !== 'School Admin'
+      req.user.role !== 'owner' &&
+      req.user.role !== 'Admin'
     ) {
       throw new ForbiddenException(
         'You do not have permission to update this user',
       );
     }
 
-    if (req.user.role === 'School Admin' && !isSelfUpdate) {
+    if (req.user.role === 'Admin' && !isSelfUpdate) {
       if (targetUser.schoolId !== req.user.schoolId) {
         throw new ForbiddenException(
           'You can only update users belonging to your school',
         );
       }
-      if (targetUser.role === 'System Admin') {
+      if (targetUser.role === 'owner') {
         throw new ForbiddenException(
-          'School Admins cannot modify System Admin users',
+          'Admins cannot modify owner users',
         );
       }
     }
 
     // Strip sensitive field changes for self-updates or non-platform admins
-    if (!isSelfUpdate && req.user.role !== 'System Admin') {
+    if (!isSelfUpdate && req.user.role !== 'owner') {
       // School admin editing another user
       delete (updateUserDto as any).schoolId;
-      if (updateUserDto.role === 'System Admin') {
+      if (updateUserDto.role === 'owner') {
         delete (updateUserDto as any).role;
       }
-    } else if (isSelfUpdate && req.user.role !== 'System Admin') {
+    } else if (isSelfUpdate && req.user.role !== 'owner') {
       // Regular user updating their own profile
       delete (updateUserDto as any).role;
       delete (updateUserDto as any).schoolId;
@@ -221,7 +221,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles('System Admin', 'School Admin')
+  @Roles('owner', 'Admin')
   @ApiOperation({ summary: 'Delete user by ID' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User successfully deleted.' })
@@ -234,18 +234,18 @@ export class UsersController {
     }
     const targetUser = await this.usersService.findOne(id);
 
-    if (req.user.role === 'School Admin') {
+    if (req.user.role === 'Admin') {
       if (targetUser.schoolId !== req.user.schoolId) {
         throw new ForbiddenException(
           'You can only delete users belonging to your school',
         );
       }
       if (
-        targetUser.role === 'System Admin' ||
-        targetUser.role === 'School Admin'
+        targetUser.role === 'owner' ||
+        targetUser.role === 'Admin'
       ) {
         throw new ForbiddenException(
-          'School Admins cannot delete other management administrators',
+          'Admins cannot delete other management administrators',
         );
       }
     }

@@ -1,4 +1,4 @@
-export type AdminRole = "Super Admin" | "Admin" | "Sub Admin";
+export type AdminRole = "owner" | "Admin" | "Sub Admin";
 export type PermissionAction = "view" | "edit" | "delete";
 export type DashboardModule =
   | "dashboard"
@@ -26,17 +26,17 @@ export const AUTH_STORAGE_KEYS = {
   permissions: "permissions",
 } as const;
 
-export const DEFAULT_ROLE: AdminRole = "Super Admin";
+export const DEFAULT_ROLE: AdminRole = "owner";
 export const DEFAULT_PASSWORD = "School@123";
 
 export const MOCK_CREDENTIALS: MockCredential[] = [
-  { email: "owner@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Super Admin" },
+  { email: "owner@schoolsaas.in", password: DEFAULT_PASSWORD, role: "owner" },
   { email: "admin@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Admin" },
   { email: "subadmin@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Sub Admin" },
 ];
 
 export const ROLE_DISPLAY_NAMES: Record<AdminRole, string> = {
-  "Super Admin": "Owner",
+  "owner": "Owner",
   "Admin": "Admin",
   "Sub Admin": "Sub Admin",
 };
@@ -73,7 +73,7 @@ function createPermissionsForModules(
 }
 
 export const DEFAULT_PERMISSIONS: Record<AdminRole, ModulePermissions> = {
-  "Super Admin": createPermissionsForModules(
+  "owner": createPermissionsForModules(
     Object.fromEntries(ALL_MODULES.map((module) => [module, createModulePermissions(true, true, true)])) as Partial<Record<DashboardModule, Record<PermissionAction, boolean>>>,
   ),
   Admin: createPermissionsForModules({
@@ -94,7 +94,7 @@ export const DEFAULT_PERMISSIONS: Record<AdminRole, ModulePermissions> = {
 };
 
 export function isAdminRole(value: string | null | undefined): value is AdminRole {
-  return value === "Super Admin" || value === "Admin" || value === "Sub Admin";
+  return value === "owner" || value === "Admin" || value === "Sub Admin";
 }
 
 export function normalizeRole(value: string | null | undefined): AdminRole {
@@ -162,7 +162,7 @@ export function resolveMockCredential(email: string, password: string) {
 }
 
 export function mapBackendRoleToFrontend(role: string): AdminRole {
-  if (role === 'System Admin') return 'Super Admin';
-  if (role === 'School Admin') return 'Admin';
+  if (role === 'System Admin' || role === 'owner' || role === 'Super Admin') return 'owner';
+  if (role === 'School Admin' || role === 'admin' || role === 'Admin') return 'Admin';
   return 'Sub Admin';
 }

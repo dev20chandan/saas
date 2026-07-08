@@ -5,7 +5,8 @@ const fallbackBaseUrl = typeof window !== 'undefined'
   ? `http://${window.location.hostname}:${fallbackPort}`
   : `http://localhost:${fallbackPort}`;
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || fallbackBaseUrl).replace(/\/$/, '');
-console.log(BASE_URL,'====>>>BASE_URL')
+console.log(BASE_URL, '====>>>BASE_URL');
+
 export interface RequestOptions extends AxiosRequestConfig {
   requireAuth?: boolean;
 }
@@ -59,6 +60,11 @@ axiosClient.interceptors.response.use(
   (error: AxiosError<any>) => {
     let errorMsg = 'An error occurred';
     
+    // Ignore aborted requests (e.g., when a component unmounts)
+    if (axios.isCancel(error)) {
+      return Promise.reject(error);
+    }
+    
     if (error.response) {
       const { status, data } = error.response;
       
@@ -69,11 +75,9 @@ axiosClient.interceptors.response.use(
       }
       
       if (status === 401 && typeof window !== 'undefined') {
-        // Clear auth store on 401 session expiry
-        localStorage.removeItem('token');
-        localStorage.removeItem('role');
-        localStorage.removeItem('schoolId');
-        localStorage.removeItem('permissions');
+        // Instead of directly manipulating localStorage, we dispatch a custom event.
+        // The AuthContext will listen to this event and perform the full React state cleanup.
+        window.dispatchEvent(new Event('auth:unauthorized'));
       }
     } else if (error.request) {
       errorMsg = 'Network error, please check your connection.';
@@ -85,6 +89,9 @@ axiosClient.interceptors.response.use(
   }
 );
 
+/**
+ * Generic API request wrapper
+ */
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestOptions = {}
@@ -104,14 +111,14 @@ export const api = {
   get: <T = any>(endpoint: string, options?: RequestOptions) =>
     apiRequest<T>(endpoint, { ...options, method: 'GET' }),
     
-  post: <T = any>(endpoint: string, body: any, options?: RequestOptions) =>
+  post: <T = any>(endpoint: string, body?: any, options?: RequestOptions) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: 'POST',
       data: body,
     }),
     
-  put: <T = any>(endpoint: string, body: any, options?: RequestOptions) =>
+  put: <T = any>(endpoint: string, body?: any, options?: RequestOptions) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: 'PUT',
@@ -120,4 +127,10 @@ export const api = {
     
   delete: <T = any>(endpoint: string, options?: RequestOptions) =>
     apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  /**
+   * SWR Fetcher integration.
+   * Usage: const { data } = useSWR('/endpoint', api.fetcher)
+   */
+  fetcher: <T = any>(url: string) => api.get<T>(url),
 };

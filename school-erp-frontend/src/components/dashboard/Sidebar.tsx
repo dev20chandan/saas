@@ -120,7 +120,7 @@ export default function Sidebar({ open }: SidebarProps) {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-    .substring(0, 2) || (role === 'Super Admin' ? 'SA' : role === 'Admin' ? 'AD' : 'SB');
+    .substring(0, 2) || (role === 'owner' ? 'OW' : role === 'Admin' ? 'AD' : 'SB');
 
   return (
     <aside
@@ -177,7 +177,7 @@ export default function Sidebar({ open }: SidebarProps) {
 
       {/* Bottom: profile + dark toggle + logout */}
       <div className="border-t border-slate-100 dark:border-[#2a2d3a] p-3 space-y-1 flex-shrink-0">
-        {/* Super Admin profile */}
+        {/* owner profile */}
         <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer transition-colors group">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0 ring-2 ring-blue-100 dark:ring-blue-900">
             {initials}

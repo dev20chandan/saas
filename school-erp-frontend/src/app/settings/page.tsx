@@ -178,8 +178,8 @@ function ProfileTab() {
           <Field id="email" label="Email Address" defaultValue="platform@schools.in" type="email" />
           <Field id="phone" label="Phone Number" defaultValue="+91 98765 43210" type="tel" />
           <Field id="designation" label="Designation" defaultValue="Platform Administrator" />
-          <SelectField id="role" label="Role" value="Super Admin" onChange={() => { }}
-            options={['Super Admin', 'Admin', 'Manager']} />
+          <SelectField id="role" label="Role" value="owner" onChange={() => { }}
+            options={['owner', 'Admin', 'Manager']} />
         </div>
         <SaveBtn onClick={save} saved={saved} />
       </SettingCard>
