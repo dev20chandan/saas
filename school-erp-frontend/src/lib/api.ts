@@ -1,10 +1,11 @@
 import axios, { AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const BASE_URL = typeof window !== 'undefined' && envUrl.includes('localhost') 
-  ? `http://${window.location.hostname}:5000`
-  : envUrl;
-
+const fallbackPort = process.env.NEXT_PUBLIC_API_PORT || '5001';
+const fallbackBaseUrl = typeof window !== 'undefined'
+  ? `http://${window.location.hostname}:${fallbackPort}`
+  : `http://localhost:${fallbackPort}`;
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || fallbackBaseUrl).replace(/\/$/, '');
+console.log(BASE_URL,'====>>>BASE_URL')
 export interface RequestOptions extends AxiosRequestConfig {
   requireAuth?: boolean;
 }

@@ -36,4 +36,7 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  @IsOptional()
+  settings?: Record<string, any>;
 }

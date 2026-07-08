@@ -113,6 +113,11 @@ function inputCls(hasError: boolean) {
   }`;
 }
 
+function generateRandomSchoolCode() {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `SCH-${suffix}`;
+}
+
 // ── Registration Form type ─────────────────────────────────────────────────────
 interface RegForm {
   name: string; code: string; type: string; email: string;
@@ -128,6 +133,12 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
   const [selectedPlan, setSelected]   = useState<Plan | null>(null);
   const [submitting, setSubmitting]   = useState(false);
   const overlayRef                    = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!form.code.trim()) {
+      setForm((prev) => (prev.code ? prev : { ...prev, code: generateRandomSchoolCode() }));
+    }
+  }, [form.code]);
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -259,6 +270,7 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
                 <Field label="School Code">
                   <input value={form.code} onChange={e => set('code', e.target.value)}
                     placeholder="Auto-generated if empty" className={inputCls(false)} />
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Auto-generated on first entry. You can edit it anytime.</p>
                 </Field>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export interface SchoolInfoData {
   schoolName: string;
@@ -22,12 +22,23 @@ interface RegisterSchoolInfoProps {
   onNext: () => void;
 }
 
+function generateRandomSchoolCode() {
+  const suffix = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `SCH-${suffix}`;
+}
+
 export default function RegisterSchoolInfo({
   data,
   onChange,
   onNext,
 }: RegisterSchoolInfoProps) {
   const [logoName, setLogoName] = useState<string>('');
+
+  useEffect(() => {
+    if (!data.schoolCode) {
+      onChange('schoolCode', generateRandomSchoolCode());
+    }
+  }, [data.schoolCode, onChange]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,6 +107,7 @@ export default function RegisterSchoolInfo({
               placeholder="e.g. DPS001"
               className="w-full h-10 px-3 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg text-sm bg-white hover:bg-slate-50/50 text-slate-900 placeholder-slate-400 transition-colors focus:outline-none"
             />
+            <p className="text-[10px] text-slate-500">Auto-generated on first entry. You can edit it anytime.</p>
           </div>
 
           {/* School Type */}

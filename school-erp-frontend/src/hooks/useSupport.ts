@@ -9,6 +9,7 @@ export function useSupport() {
 
   return {
     tickets: data || [],
+    support: data || [],
     isLoading,
     isError: error,
     mutate,

@@ -1,49 +1,61 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { User, UserDocument } from './schemas/user.schema';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { School, SchoolDocument } from '../schools/schemas/school.schema';
 
 @Injectable()
 export class UsersService {
-  constructor(
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    // Check if user already exists
-    const existing = await this.userModel.findOne({ email: createUserDto.email }).exec();
+  private async resolveSchoolMeta(schoolId: string, providedName?: string) {
+    let schoolName = providedName || 'All Schools';
+    let schoolUuid: string | null = null;
+
+    if (schoolId !== 'ALL') {
+      const school = await this.prisma.school.findFirst({
+        where: {
+          OR: [{ id: schoolId }, { code: schoolId }],
+        },
+      });
+
+      if (school) {
+        schoolName = school.name;
+        schoolUuid = school.id;
+      }
+    }
+
+    return { schoolName, schoolUuid };
+  }
+
+  async create(createUserDto: CreateUserDto) {
+    const email = createUserDto.email.toLowerCase();
+    const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
       throw new BadRequestException('User with this email already exists');
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(createUserDto.password, salt);
 
-    let schoolName = createUserDto.school || 'All Schools';
     const schoolId = createUserDto.schoolId || 'ALL';
+    const { schoolName, schoolUuid } = await this.resolveSchoolMeta(schoolId, createUserDto.school);
 
-    if (schoolId !== 'ALL' && !createUserDto.school) {
-      const school = await this.schoolModel.findById(schoolId).exec();
-      if (school) {
-        schoolName = school.name;
-      }
-    }
-
-    const newUser = new this.userModel({
-      ...createUserDto,
+    const data: any = {
+      name: createUserDto.name,
+      email,
       password: passwordHash,
+      role: createUserDto.role || 'Teacher',
       schoolId,
-      school: schoolName,
+      schoolUuid,
+      schoolName,
+      operator: createUserDto.operator,
       status: createUserDto.status || 'Active',
-    });
+      phone: createUserDto.phone,
+      settings: createUserDto.settings || {},
+    };
 
-    return newUser.save();
+    return this.prisma.user.create({ data });
   }
 
   async findAll(query: {
@@ -53,108 +65,117 @@ export class UsersService {
     schoolId?: string;
     page?: number;
     limit?: number;
-  }): Promise<{ users: User[]; total: number }> {
+  }) {
     const { search, role, status, schoolId, page = 1, limit = 8 } = query;
-    const filter: any = {};
+    const where: any = {};
 
     if (schoolId && schoolId !== 'ALL') {
-      filter.schoolId = schoolId;
+      where.schoolId = schoolId;
     }
 
     if (role && role !== 'All') {
-      filter.role = role;
+      where.role = role;
     }
 
     if (status && status !== 'All') {
-      filter.status = status;
+      where.status = status;
     }
 
     if (search) {
-      const searchRegex = new RegExp(search, 'i');
-      filter.$or = [
-        { name: searchRegex },
-        { email: searchRegex },
-        { school: searchRegex },
-        { phone: searchRegex },
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+        { schoolName: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const skip = (page - 1) * limit;
-
     const [users, total] = await Promise.all([
-      this.userModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).exec(),
-      this.userModel.countDocuments(filter).exec(),
+      this.prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.user.count({ where }),
     ]);
 
     return { users, total };
   }
 
-  async findOne(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).exec();
+  async findOne(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException(`User with ID "${id}" not found`);
     }
     return user;
   }
 
-  async findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email }).exec();
+  async findByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const updateData: any = { ...updateUserDto };
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID "${id}" not found`);
+    }
+
+    const updateData: any = {};
+    const writableFields = ['name', 'email', 'role', 'operator', 'status', 'phone', 'settings'];
+    for (const field of writableFields) {
+      if ((updateUserDto as any)[field] !== undefined) {
+        updateData[field] = (updateUserDto as any)[field];
+      }
+    }
 
     if (updateUserDto.password) {
       const salt = await bcrypt.genSalt(10);
       updateData.password = await bcrypt.hash(updateUserDto.password, salt);
     }
 
-    if (updateUserDto.schoolId && updateUserDto.schoolId !== 'ALL' && !updateUserDto.school) {
-      const school = await this.schoolModel.findById(updateUserDto.schoolId).exec();
-      if (school) {
-        updateData.school = school.name;
+    if (updateUserDto.schoolId) {
+      updateData.schoolId = updateUserDto.schoolId;
+      if (updateUserDto.schoolId === 'ALL') {
+        updateData.schoolName = 'All Schools';
+        updateData.schoolUuid = null;
+      } else {
+        const { schoolName, schoolUuid } = await this.resolveSchoolMeta(
+          updateUserDto.schoolId,
+          updateUserDto.school,
+        );
+        updateData.schoolName = schoolName;
+        updateData.schoolUuid = schoolUuid;
       }
+    } else if (updateUserDto.school) {
+      updateData.schoolName = updateUserDto.school;
     }
 
-    const updated = await this.userModel
-      .findByIdAndUpdate(id, updateData, { new: true })
-      .exec();
-
-    if (!updated) {
-      throw new NotFoundException(`User with ID "${id}" not found`);
-    }
-    return updated;
+    return this.prisma.user.update({
+      where: { id },
+      data: updateData,
+    });
   }
 
-  async remove(id: string): Promise<User> {
-    const deleted = await this.userModel.findByIdAndDelete(id).exec();
-    if (!deleted) {
-      throw new NotFoundException(`User with ID "${id}" not found`);
-    }
-    return deleted;
+  async remove(id: string) {
+    await this.prisma.user.findUnique({ where: { id } });
+    return this.prisma.user.delete({ where: { id } });
   }
 
-  async getStats(schoolId?: string): Promise<{
-    total: number;
-    active: number;
-    pending: number;
-    locked: number;
-    inactive: number;
-  }> {
-    const matchFilter: any = {};
+  async getStats(schoolId?: string) {
+    const where: any = {};
     if (schoolId && schoolId !== 'ALL') {
-      matchFilter.schoolId = schoolId;
+      where.schoolId = schoolId;
     }
 
-    const statsArray = await this.userModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-        },
+    const statsArray = await this.prisma.user.groupBy({
+      by: ['status'],
+      where,
+      _count: {
+        _all: true,
       },
-    ]).exec();
+    });
 
     const stats = {
       total: 0,
@@ -165,14 +186,14 @@ export class UsersService {
     };
 
     statsArray.forEach((item) => {
-      const status = item._id ? item._id.toLowerCase() : '';
-      if (status === 'active') stats.active = item.count;
-      else if (status === 'pending') stats.pending = item.count;
-      else if (status === 'locked') stats.locked = item.count;
-      else if (status === 'inactive') stats.inactive = item.count;
+      const status = item.status?.toLowerCase();
+      if (status === 'active') stats.active = item._count._all;
+      else if (status === 'pending') stats.pending = item._count._all;
+      else if (status === 'locked') stats.locked = item._count._all;
+      else if (status === 'inactive') stats.inactive = item._count._all;
     });
 
-    stats.total = await this.userModel.countDocuments(matchFilter).exec();
+    stats.total = await this.prisma.user.count({ where });
 
     return stats;
   }

@@ -121,6 +121,12 @@ export default function RegisterPage() {
               Register Your School
             </h1>
             <p className="text-xs text-slate-500 mt-1">Create your school account in 4 simple steps</p>
+            <p className="text-xs text-slate-500 mt-2">
+              Already have an account?{' '}
+              <Link href="/login" className="text-blue-600 hover:underline font-semibold">
+                Sign in
+              </Link>
+            </p>
           </div>
 
           {/* Step Progress Indicator */}

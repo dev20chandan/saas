@@ -81,20 +81,31 @@ export default function Sidebar({ open }: SidebarProps) {
 
   useEffect(() => {
     let active = true;
-    if (token) {
-      api.get('/auth/me')
-        .then((res) => {
-          if (active && res) {
-            setProfile({
-              name: res.name || getRoleDisplayName(role),
-              email: res.email || 'platform@schools.in',
-            });
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to load profile in sidebar:', err);
-        });
+
+    if (!token) {
+      setProfile(null);
+      return () => {
+        active = false;
+      };
     }
+
+    api.get('/auth/me')
+      .then((res) => {
+        if (!active || !res) {
+          return;
+        }
+
+        setProfile({
+          name: res.name || getRoleDisplayName(role),
+          email: res.email || 'platform@schools.in',
+        });
+      })
+      .catch(() => {
+        if (active) {
+          setProfile(null);
+        }
+      });
+
     return () => {
       active = false;
     };

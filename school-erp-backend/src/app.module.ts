@@ -1,6 +1,5 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
@@ -12,6 +11,7 @@ import { StatsModule } from './stats/stats.module';
 import { LoggerMiddleware } from './logger.middleware';
 import { SupportModule } from './support/support.module';
 import { AuditModule } from './audit/audit.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
@@ -20,18 +20,15 @@ import { AuditModule } from './audit/audit.module';
       isGlobal: true,
     }),
     // Rate Limiting (100 requests per 60 seconds)
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
-    // Dynamic MongoDB database connection
-    MongooseModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_URI') || 'mongodb://127.0.0.1:27017/school-erp',
-      }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 100,
+        },
+      ],
     }),
+    PrismaModule,
     SchoolsModule,
     UsersModule,
     AuthModule,

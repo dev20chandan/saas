@@ -26,12 +26,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Your account is inactive or locked. Please contact support.');
     }
     return {
-      id: user._id,
+      id: user.id,
       email: user.email,
       name: user.name,
       role: user.role,
       schoolId: user.schoolId,
-      school: user.school,
+      school: user.schoolName,
     };
   }
 }

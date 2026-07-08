@@ -1,8 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { PrismaService } from './prisma/prisma.service';
 import { UsersService } from './users/users.service';
-import { Connection } from 'mongoose';
-import { getConnectionToken } from '@nestjs/mongoose';
 
 const DEFAULT_PASSWORD = 'School@123';
 
@@ -11,20 +10,21 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
 
   try {
-    const connection = app.get<Connection>(getConnectionToken());
+    const prisma = app.get(PrismaService);
 
-    // Clear old tables
-    console.log('🧹 Clearing existing database collections...');
-    const collections = Object.keys(connection.collections);
-    for (const collectionName of collections) {
-      await connection.collections[collectionName].deleteMany({});
-    }
+    console.log('🧹 Clearing existing database tables...');
+    await prisma.$transaction([
+      prisma.ticket.deleteMany(),
+      prisma.activity.deleteMany(),
+      prisma.auditLog.deleteMany(),
+      prisma.user.deleteMany(),
+      prisma.school.deleteMany(),
+    ]);
 
     const usersService = app.get(UsersService);
 
-    // 1. Seed Core Admins
     console.log('👤 Seeding default platform credentials...');
-    const superAdmin = await usersService.create({
+    await usersService.create({
       name: 'Owner',
       email: 'owner@schoolsaas.in',
       password: DEFAULT_PASSWORD,
@@ -36,7 +36,7 @@ async function bootstrap() {
       phone: '+91 98765 00001',
     });
 
-    const admin = await usersService.create({
+    await usersService.create({
       name: 'Admin User',
       email: 'admin@schoolsaas.in',
       password: DEFAULT_PASSWORD,
@@ -48,7 +48,7 @@ async function bootstrap() {
       phone: '+91 98765 00002',
     });
 
-    const subAdmin = await usersService.create({
+    await usersService.create({
       name: 'SubAdmin User',
       email: 'subadmin@schoolsaas.in',
       password: DEFAULT_PASSWORD,

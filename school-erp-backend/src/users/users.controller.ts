@@ -14,7 +14,14 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -32,7 +39,9 @@ export class UsersController {
   @Post()
   @Roles('System Admin', 'School Admin')
   @UsePipes(new ValidationPipe({ transform: true }))
-  @ApiOperation({ summary: 'Create a new user (System Admin or School Admin only)' })
+  @ApiOperation({
+    summary: 'Create a new user (System Admin or School Admin only)',
+  })
   @ApiResponse({ status: 201, description: 'User successfully created.' })
   @ApiResponse({ status: 400, description: 'Bad Request.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -40,7 +49,9 @@ export class UsersController {
     if (req.user.role === 'School Admin') {
       createUserDto.schoolId = req.user.schoolId;
       if (createUserDto.role === 'System Admin') {
-        throw new ForbiddenException('School Admins cannot create System Admin users');
+        throw new ForbiddenException(
+          'School Admins cannot create System Admin users',
+        );
       }
     }
     return this.usersService.create(createUserDto);
@@ -48,14 +59,44 @@ export class UsersController {
 
   @Get()
   @Roles('System Admin', 'School Admin')
-  @ApiOperation({ summary: 'Get all users with filter, search, and pagination' })
-  @ApiQuery({ name: 'search', required: false, description: 'Search term for user name or email' })
-  @ApiQuery({ name: 'role', required: false, description: 'Filter users by role (e.g., superadmin, admin, schooladmin, teacher, student)' })
-  @ApiQuery({ name: 'status', required: false, description: 'Filter users by activity status (e.g., active, inactive)' })
-  @ApiQuery({ name: 'schoolId', required: false, description: 'Filter users by associated school ID' })
-  @ApiQuery({ name: 'page', required: false, description: 'Page number for pagination' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of users per page' })
-  @ApiResponse({ status: 200, description: 'Users list retrieved successfully.' })
+  @ApiOperation({
+    summary: 'Get all users with filter, search, and pagination',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search term for user name or email',
+  })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    description:
+      'Filter users by role (e.g., superadmin, admin, schooladmin, teacher, student)',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter users by activity status (e.g., active, inactive)',
+  })
+  @ApiQuery({
+    name: 'schoolId',
+    required: false,
+    description: 'Filter users by associated school ID',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of users per page',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Users list retrieved successfully.',
+  })
   findAll(
     @Request() req,
     @Query('search') search?: string,
@@ -81,11 +122,18 @@ export class UsersController {
 
   @Get('stats')
   @Roles('System Admin', 'School Admin')
-  @ApiOperation({ summary: 'Get user dashboard statistics, optionally filtered by school ID' })
-  @ApiQuery({ name: 'schoolId', required: false, description: 'Associated school ID filter' })
+  @ApiOperation({
+    summary: 'Get user dashboard statistics, optionally filtered by school ID',
+  })
+  @ApiQuery({
+    name: 'schoolId',
+    required: false,
+    description: 'Associated school ID filter',
+  })
   @ApiResponse({ status: 200, description: 'Stats retrieved successfully.' })
   getStats(@Request() req, @Query('schoolId') schoolId?: string) {
-    const targetSchoolId = req.user.role === 'System Admin' ? schoolId : req.user.schoolId;
+    const targetSchoolId =
+      req.user.role === 'System Admin' ? schoolId : req.user.schoolId;
     return this.usersService.getStats(targetSchoolId);
   }
 
@@ -93,7 +141,10 @@ export class UsersController {
   @ApiOperation({ summary: 'Get user details by ID' })
   @ApiParam({ name: 'id', description: 'User ID' })
   @ApiResponse({ status: 200, description: 'User retrieved successfully.' })
-  @ApiResponse({ status: 403, description: 'Forbidden. You do not have access to this user.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden. You do not have access to this user.',
+  })
   @ApiResponse({ status: 404, description: 'User not found.' })
   async findOne(@Request() req, @Param('id') id: string) {
     if (req.user.id === id) {
@@ -103,8 +154,13 @@ export class UsersController {
       throw new ForbiddenException('You do not have access to view this user');
     }
     const userObj = await this.usersService.findOne(id);
-    if (req.user.role === 'School Admin' && userObj.schoolId !== req.user.schoolId) {
-      throw new ForbiddenException('You do not have access to view users outside your school');
+    if (
+      req.user.role === 'School Admin' &&
+      userObj.schoolId !== req.user.schoolId
+    ) {
+      throw new ForbiddenException(
+        'You do not have access to view users outside your school',
+      );
     }
     return userObj;
   }
@@ -116,20 +172,34 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'User successfully updated.' })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   @ApiResponse({ status: 404, description: 'User not found.' })
-  async update(@Request() req, @Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  async update(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     const targetUser = await this.usersService.findOne(id);
     const isSelfUpdate = req.user.id === id;
 
-    if (!isSelfUpdate && req.user.role !== 'System Admin' && req.user.role !== 'School Admin') {
-      throw new ForbiddenException('You do not have permission to update this user');
+    if (
+      !isSelfUpdate &&
+      req.user.role !== 'System Admin' &&
+      req.user.role !== 'School Admin'
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to update this user',
+      );
     }
 
     if (req.user.role === 'School Admin' && !isSelfUpdate) {
       if (targetUser.schoolId !== req.user.schoolId) {
-        throw new ForbiddenException('You can only update users belonging to your school');
+        throw new ForbiddenException(
+          'You can only update users belonging to your school',
+        );
       }
       if (targetUser.role === 'System Admin') {
-        throw new ForbiddenException('School Admins cannot modify System Admin users');
+        throw new ForbiddenException(
+          'School Admins cannot modify System Admin users',
+        );
       }
     }
 
@@ -166,13 +236,19 @@ export class UsersController {
 
     if (req.user.role === 'School Admin') {
       if (targetUser.schoolId !== req.user.schoolId) {
-        throw new ForbiddenException('You can only delete users belonging to your school');
+        throw new ForbiddenException(
+          'You can only delete users belonging to your school',
+        );
       }
-      if (targetUser.role === 'System Admin' || targetUser.role === 'School Admin') {
-        throw new ForbiddenException('School Admins cannot delete other management administrators');
+      if (
+        targetUser.role === 'System Admin' ||
+        targetUser.role === 'School Admin'
+      ) {
+        throw new ForbiddenException(
+          'School Admins cannot delete other management administrators',
+        );
       }
     }
     return this.usersService.remove(id);
   }
 }
-

@@ -1,39 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { School, SchoolDocument } from '../schools/schemas/school.schema';
-import { User, UserDocument } from '../users/schemas/user.schema';
-import { Activity, ActivityDocument } from './schemas/activity.schema';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class StatsService {
-  constructor(
-    @InjectModel(School.name) private schoolModel: Model<SchoolDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Activity.name) private activityModel: Model<ActivityDocument>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async logActivity(type: string, text: string, color: string, schoolId = 'ALL'): Promise<Activity> {
-    const activity = new this.activityModel({
-      type,
-      text,
-      color,
-      schoolId,
-      time: new Date(),
+  async logActivity(type: string, text: string, color: string, schoolId = 'ALL') {
+    return this.prisma.activity.create({
+      data: {
+        type,
+        text,
+        color,
+        schoolId,
+        time: new Date(),
+      },
     });
-    return activity.save();
   }
 
-  async getRecentActivities(limit = 5, schoolId?: string): Promise<Activity[]> {
-    const filter: any = {};
+  async getRecentActivities(limit = 5, schoolId?: string) {
+    const where: any = {};
     if (schoolId && schoolId !== 'ALL') {
-      filter.schoolId = schoolId;
+      where.schoolId = schoolId;
     }
-    return this.activityModel.find(filter).sort({ time: -1 }).limit(limit).exec();
+
+    return this.prisma.activity.findMany({
+      where,
+      orderBy: { time: 'desc' },
+      take: limit,
+    });
+  }
+
+  private formatChartDate(date: Date) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
   }
 
   async getDashboardStats(schoolId?: string) {
-    // 1. Calculate counters
     let totalSchools = 0;
     let activeSchools = 0;
     let schoolAdmins = 0;
@@ -44,8 +45,7 @@ export class StatsService {
     let activeUsers = 0;
 
     if (schoolId && schoolId !== 'ALL') {
-      // Localized school stats
-      const schoolObj = await this.schoolModel.findById(schoolId).exec();
+      const schoolObj = await this.prisma.school.findUnique({ where: { id: schoolId } });
       if (schoolObj) {
         studentsCount = schoolObj.students;
         teachersCount = schoolObj.teachers;
@@ -55,78 +55,73 @@ export class StatsService {
         totalSchools = 1;
       }
 
-      schoolAdmins = await this.userModel.countDocuments({ schoolId, role: 'School Admin' }).exec();
-      const dbTeachers = await this.userModel.countDocuments({ schoolId, role: 'Teacher' }).exec();
+      schoolAdmins = await this.prisma.user.count({
+        where: { schoolId, role: 'School Admin' },
+      });
+      const dbTeachers = await this.prisma.user.count({
+        where: { schoolId, role: 'Teacher' },
+      });
       teachersCount = Math.max(teachersCount, dbTeachers);
-      
-      pendingUsers = await this.userModel.countDocuments({ schoolId, status: 'Pending' }).exec();
-      inactiveUsers = await this.userModel.countDocuments({ schoolId, status: 'Inactive' }).exec();
-      activeUsers = await this.userModel.countDocuments({ schoolId, status: 'Active' }).exec();
+      pendingUsers = await this.prisma.user.count({
+        where: { schoolId, status: 'Pending' },
+      });
+      inactiveUsers = await this.prisma.user.count({
+        where: { schoolId, status: 'Inactive' },
+      });
+      activeUsers = await this.prisma.user.count({
+        where: { schoolId, status: 'Active' },
+      });
     } else {
-      // Global platform stats
-      totalSchools = await this.schoolModel.countDocuments().exec();
-      activeSchools = await this.schoolModel.countDocuments({ status: { $in: ['Active', 'Trial'] } }).exec();
-      schoolAdmins = await this.userModel.countDocuments({ role: 'School Admin' }).exec();
-      
-      // Sum students and teachers across all schools
-      const schoolAggregations = await this.schoolModel.aggregate([
-        {
-          $group: {
-            _id: null,
-            totalStudents: { $sum: '$students' },
-            totalTeachers: { $sum: '$teachers' },
-          },
+      totalSchools = await this.prisma.school.count();
+      activeSchools = await this.prisma.school.count({
+        where: { status: { in: ['Active', 'Trial'] } },
+      });
+      schoolAdmins = await this.prisma.user.count({ where: { role: 'School Admin' } });
+
+      const schoolAggregations = await this.prisma.school.aggregate({
+        _sum: {
+          students: true,
+          teachers: true,
         },
-      ]).exec();
+      });
 
-      const dbTeachers = await this.userModel.countDocuments({ role: 'Teacher' }).exec();
+      studentsCount = schoolAggregations._sum.students ?? 0;
+      teachersCount = (schoolAggregations._sum.teachers ?? 0) +
+        (await this.prisma.user.count({ where: { role: 'Teacher' } }));
 
-      studentsCount = schoolAggregations[0]?.totalStudents || 0;
-      teachersCount = (schoolAggregations[0]?.totalTeachers || 0) + dbTeachers;
-
-      pendingUsers = await this.userModel.countDocuments({ status: 'Pending' }).exec();
-      inactiveUsers = await this.userModel.countDocuments({ status: 'Inactive' }).exec();
-      activeUsers = await this.userModel.countDocuments({ status: 'Active' }).exec();
+      pendingUsers = await this.prisma.user.count({ where: { status: 'Pending' } });
+      inactiveUsers = await this.prisma.user.count({ where: { status: 'Inactive' } });
+      activeUsers = await this.prisma.user.count({ where: { status: 'Active' } });
     }
 
-    // 2. School Growth (registrations over last 7 days)
-    const schoolGrowthChart: any[] = [];
+    const schoolGrowthChart: Array<{ date: string; count: number }> = [];
     if (!schoolId || schoolId === 'ALL') {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      const rawGrowth = await this.schoolModel.aggregate([
-        { $match: { createdAt: { $gte: oneWeekAgo } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%b %d', date: '$createdAt' } },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } }
-      ]).exec();
+      const schools = await this.prisma.school.findMany({
+        where: { createdAt: { gte: oneWeekAgo } },
+        select: { createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      });
 
-      if (rawGrowth.length > 0) {
-        rawGrowth.forEach(item => {
-          schoolGrowthChart.push({
-            date: item._id,
-            count: item.count,
-          });
+      const growthByDay = new Map<string, number>();
+      schools.forEach((school) => {
+        const label = this.formatChartDate(school.createdAt);
+        growthByDay.set(label, (growthByDay.get(label) ?? 0) + 1);
+      });
+
+      for (let daysAgo = 7; daysAgo >= 0; daysAgo -= 1) {
+        const date = new Date();
+        date.setDate(date.getDate() - daysAgo);
+        const label = this.formatChartDate(date);
+        schoolGrowthChart.push({
+          date: label,
+          count: growthByDay.get(label) ?? 0,
         });
-      } else {
-        schoolGrowthChart.push(
-          { date: 'May 20', count: 12 },
-          { date: 'May 21', count: 15 },
-          { date: 'May 22', count: 18 },
-          { date: 'May 23', count: 14 },
-          { date: 'May 24', count: 22 },
-          { date: 'May 25', count: 25 },
-          { date: 'May 26', count: totalSchools },
-        );
       }
     }
 
-    // 3. User Adoption Trend
     const userAdoptionChart = [
       { date: 'Apr 27', value: 300 },
       { date: 'May 04', value: 450 },
@@ -138,7 +133,6 @@ export class StatsService {
     const recentActivities = await this.getRecentActivities(5, schoolId);
 
     return {
-      // Root level properties expected by frontend page.tsx
       totalSchools,
       activeSchools,
       totalStudents: studentsCount,
@@ -146,8 +140,6 @@ export class StatsService {
       pendingUsers,
       inactiveUsers,
       recentActivities,
-
-      // Nested counters for backward compatibility
       counters: {
         totalSchools,
         activeSchools,
@@ -163,7 +155,7 @@ export class StatsService {
       profileCompletion: {
         current: activeUsers,
         target: 10000,
-        percentage: Math.min(Math.round((activeUsers / 10000) * 100), 100) || 23,
+        percentage: Math.min(Math.round((activeUsers / 10000) * 100), 100),
       },
       accessHealth: 'Healthy',
     };

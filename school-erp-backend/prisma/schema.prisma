@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id         String    @id @default(uuid())
+  name       String
+  code       String    @unique
+  type       String    @default("CBSE")
+  city       String
+  state      String
+  address    String?
+  principal  String
+  plan       String    @default("Basic")
+  status     String    @default("Trial")
+  students   Int       @default(0)
+  teachers   Int       @default(0)
+  email      String
+  phone      String
+  operator   String?
+  joined     DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  users      User[]
+  tickets    Ticket[]
+  activities Activity[]
+}
+
+model User {
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  role       String    @default("Teacher")
+  schoolId   String    @default("ALL")
+  schoolUuid String?   
+  schoolName String?   
+  operator   String?
+  status     String    @default("Active")
+  phone      String?
+  lastLogin  DateTime?
+  settings   Json      @default("{}")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  school     School?   @relation(fields: [schoolUuid], references: [id])
+  tickets    Ticket[]  @relation("SubmitterTickets")
+}
+
+model Ticket {
+  id          String   @id @default(uuid())
+  ticketId    String   @unique
+  subject     String
+  schoolId    String
+  submitterId String
+  priority    String   @default("Low")
+  status      String   @default("Open")
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id])
+  submitter   User     @relation("SubmitterTickets", fields: [submitterId], references: [id])
+}
+
+model Activity {
+  id         String   @id @default(uuid())
+  type       String
+  text       String
+  color      String
+  schoolId   String   @default("ALL")
+  schoolUuid String?  
+  time       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  school     School?  @relation(fields: [schoolUuid], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  eventId   String   @unique
+  user      String
+  role      String
+  action    String
+  resource  String
+  status    String
+  ipAddress String
+  payload   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

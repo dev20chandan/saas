@@ -20,13 +20,15 @@ import { UpdateSchoolDto } from './dto/update-school.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { AuthRequest } from 'src/common/interceptors/auth-request.interface';
+
 
 @ApiTags('Schools')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('schools')
 export class SchoolsController {
-  constructor(private readonly schoolsService: SchoolsService) {}
+  constructor(private readonly schoolsService: SchoolsService) { }
 
   @Post()
   @Roles('System Admin')

@@ -32,27 +32,25 @@ export class AuthService {
     }
 
     const payload = {
-      sub: user._id,
+      sub: user.id,
       email: user.email,
       role: user.role,
       schoolId: user.schoolId,
     };
 
-    // Update lastLogin timestamp asynchronously
-    user.lastLogin = new Date();
-    await user.save();
+    await this.usersService.update(user.id, { lastLogin: new Date() } as any);
 
     return {
       token: this.jwtService.sign(payload),
       role: user.role,
       schoolId: user.schoolId,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
         schoolId: user.schoolId,
-        school: user.school,
+        school: user.schoolName,
       },
     };
   }
