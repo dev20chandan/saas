@@ -56,4 +56,20 @@ export class CreateSchoolDto {
   @IsString()
   @IsOptional()
   operator?: string;
+
+  @IsString()
+  @IsOptional()
+  adminName?: string;
+
+  @IsEmail()
+  @IsOptional()
+  adminEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  adminPassword?: string;
+
+  @IsString()
+  @IsOptional()
+  adminPhone?: string;
 }

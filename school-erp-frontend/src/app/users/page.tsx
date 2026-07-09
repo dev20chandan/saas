@@ -7,9 +7,10 @@ import { useAuth } from '@/lib/AuthContext';
 import { canPerform } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { useUsers } from '@/hooks/useUsers';
+import { useRouter } from 'next/navigation';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Role = 'System Admin' | 'School Admin' | 'Teacher' | 'Staff' | 'Parent';
+type Role = 'System Admin' | 'School Admin' | 'Headmaster' | 'Teacher' | 'Staff' | 'Parent';
 type Status = 'Active' | 'Inactive' | 'Locked' | 'Pending';
 
 interface User {
@@ -38,6 +39,7 @@ const STATUS_STYLE: Record<Status, string> = {
 const ROLE_STYLE: Record<Role, string> = {
   'System Admin': 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400',
   'School Admin': 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-400',
+  'Headmaster': 'bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-700 dark:text-fuchsia-400',
   'Teacher': 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
   'Staff': 'bg-slate-100 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300',
   'Parent': 'bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-400',
@@ -56,6 +58,7 @@ export default function UsersPage() {
   const [sortCol, setSortCol] = useState<keyof User>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const router = useRouter();
   const { users: rawUsers, isLoading, mutate } = useUsers();
 
   const mappedUsers: User[] = useMemo(() => {
@@ -209,7 +212,7 @@ export default function UsersPage() {
               <button title="Export" className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-[#2a2d3a] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shadow-sm">
                 <Icon d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" className="w-4 h-4" />
               </button>
-              <button className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center gap-2 shadow-sm shadow-blue-500/20 transition-colors">
+              <button onClick={() => router.push('/users/create')} className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center gap-2 shadow-sm shadow-blue-500/20 transition-colors">
                 <Icon d={ICONS.users} className="w-4 h-4" />
                 Add User
               </button>

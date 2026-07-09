@@ -122,8 +122,9 @@ function generateRandomSchoolCode() {
 interface RegForm {
   name: string; code: string; type: string; email: string;
   phone: string; city: string; state: string; address: string; principal: string;
+  adminPassword?: string;
 }
-const BLANK: RegForm = { name: '', code: '', type: 'CBSE', email: '', phone: '', city: '', state: '', address: '', principal: '' };
+const BLANK: RegForm = { name: '', code: '', type: 'CBSE', email: '', phone: '', city: '', state: '', address: '', principal: '', adminPassword: '' };
 
 // ── Registration Modal ─────────────────────────────────────────────────────────
 function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (s: School) => void }) {
@@ -162,6 +163,7 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
     if (!form.city.trim())      e.city      = 'City is required';
     if (!form.state.trim())     e.state     = 'State is required';
     if (!form.principal.trim()) e.principal = 'Principal name is required';
+    if (!form.adminPassword?.trim()) e.adminPassword = 'Password is required for admin access';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -173,10 +175,14 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
   async function submit() {
     setSubmitting(true);
     try {
-      const response = await api.post('/schools', {
+      const payload = {
         ...form,
         plan: selectedPlan ?? 'Basic',
-      });
+        adminName: form.principal,
+        adminEmail: form.email,
+        adminPhone: form.phone,
+      };
+      const response = await api.post('/schools', payload);
       const school: School = {
         id: response._id,
         name: response.name,
@@ -304,10 +310,16 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
                     placeholder="e.g. Delhi" className={inputCls(!!errors.state)} />
                 </Field>
               </div>
-              <Field label="Full Address">
-                <input value={form.address} onChange={e => set('address', e.target.value)}
-                  placeholder="Street, Area, PIN code" className={inputCls(false)} />
-              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="Full Address">
+                  <input value={form.address} onChange={e => set('address', e.target.value)}
+                    placeholder="Street, Area, PIN code" className={inputCls(false)} />
+                </Field>
+                <Field label="Admin Login Password *" error={errors.adminPassword}>
+                  <input type="text" value={form.adminPassword || ''} onChange={e => set('adminPassword', e.target.value)}
+                    placeholder="Set password for headmaster/admin" className={inputCls(!!errors.adminPassword)} />
+                </Field>
+              </div>
             </div>
           )}
 

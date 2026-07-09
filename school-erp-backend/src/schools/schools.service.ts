@@ -13,14 +13,37 @@ export class SchoolsService {
   }
 
   async create(createSchoolDto: CreateSchoolDto) {
-    const code = createSchoolDto.code?.trim() || this.generateSchoolCode();
-    return this.prisma.school.create({
+    const { adminName, adminEmail, adminPassword, adminPhone, operator, ...schoolData } = createSchoolDto;
+    const code = schoolData.code?.trim() || this.generateSchoolCode();
+    
+    const school = await this.prisma.school.create({
       data: {
-        ...createSchoolDto,
+        ...schoolData,
         code,
-        status: createSchoolDto.status || 'Trial',
+        status: schoolData.status || 'Trial',
+        operator,
       },
     });
+
+    if (adminName && adminEmail && adminPassword) {
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(adminPassword, 10);
+      
+      await this.prisma.admin.create({
+        data: {
+          name: adminName,
+          email: adminEmail.toLowerCase(),
+          password: hashedPassword,
+          role: 'Admin',
+          schoolId: school.id,
+          schoolName: school.name,
+          phone: adminPhone,
+          operator: operator,
+        }
+      });
+    }
+
+    return school;
   }
 
   async findAll(query: {
