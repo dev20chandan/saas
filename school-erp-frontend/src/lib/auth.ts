@@ -9,7 +9,8 @@ export type DashboardModule =
   | "analytics"
   | "support"
   | "audit"
-  | "settings";
+  | "settings"
+  | "admins";
 
 export type ModulePermissions = Record<DashboardModule, Record<PermissionAction, boolean>>;
 
@@ -22,6 +23,7 @@ export interface MockCredential {
 export const AUTH_STORAGE_KEYS = {
   token: "token",
   role: "role",
+  type: "type",
   schoolId: "schoolId",
   permissions: "permissions",
 } as const;
@@ -51,6 +53,7 @@ const ALL_MODULES: DashboardModule[] = [
   "support",
   "audit",
   "settings",
+  "admins"
 ];
 
 const createModulePermissions = (
@@ -84,12 +87,14 @@ export const DEFAULT_PERMISSIONS: Record<AdminRole, ModulePermissions> = {
     payments: createModulePermissions(true, true, false),
     analytics: createModulePermissions(true, true, false),
     support: createModulePermissions(true, false, false),
+    admins: createModulePermissions(false, false, false),
   }),
   "Sub Admin": createPermissionsForModules({
     dashboard: createModulePermissions(true, false, false),
     schools: createModulePermissions(true, false, false),
     users: createModulePermissions(true, false, false),
     support: createModulePermissions(true, false, false),
+    admins: createModulePermissions(false, false, false),
   }),
 };
 

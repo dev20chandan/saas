@@ -48,14 +48,15 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await api.post('/auth/login', { email, password }, { requireAuth: false });
+      const response = await api.post('/auth/admin-login', { email, password }, { requireAuth: false });
       const mappedRole = mapBackendRoleToFrontend(response.role);
       
       signIn({
         token: response.token,
         role: mappedRole,
+        type: 'admin',
         schoolId: response.schoolId || '',
-        permissions: getDefaultPermissions(mappedRole),
+        permissions: response.user?.settings?.permissions || getDefaultPermissions(mappedRole),
       });
       
       router.push('/dashboard');
@@ -187,7 +188,7 @@ export default function LoginPage() {
             {/* Title & Subtitle */}
             <div className="mb-6">
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Sign in to your account
+                Admin Sign In
               </h2>
               <p className="text-xs text-slate-400 mt-1">
                 Use one of the 3 demo accounts. Password: {DEFAULT_PASSWORD}

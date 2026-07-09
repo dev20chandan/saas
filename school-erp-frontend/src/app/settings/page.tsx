@@ -189,6 +189,7 @@ function ProfileTab() {
 
 // ── SECURITY TAB ──────────────────────────────────────────────────────────────
 function SecurityTab() {
+  const { type: userType } = useAuth();
   const [passSaved, setPassSaved] = useState(false);
   const [twoFA, setTwoFA] = useState(true);
   const [sessionTimeout, setSessionTimeout] = useState(true);
@@ -206,7 +207,8 @@ function SecurityTab() {
         const me = await api.get('/auth/me');
         if (me && me.id) {
           setUserId(me.id);
-          const user = await api.get(`/users/${me.id}`);
+          const endpoint = userType === 'admin' ? 'admins' : 'users';
+          const user = await api.get(`/${endpoint}/${me.id}`);
           if (user && user.settings) {
             setTwoFA(user.settings.twoFA !== false);
             setSessionTimeout(user.settings.sessionTimeout !== false);
@@ -218,15 +220,16 @@ function SecurityTab() {
       }
     }
     loadSecurity();
-  }, []);
+  }, [userType]);
 
   async function updatePreference(key: string, val: boolean, setter: (v: boolean) => void) {
     setter(val);
     if (!userId) return;
     try {
-      const user = await api.get(`/users/${userId}`);
+      const endpoint = userType === 'admin' ? 'admins' : 'users';
+      const user = await api.get(`/${endpoint}/${userId}`);
       const currentSettings = user?.settings || {};
-      await api.put(`/users/${userId}`, {
+      await api.put(`/${endpoint}/${userId}`, {
         settings: {
           ...currentSettings,
           [key]: val
@@ -244,7 +247,8 @@ function SecurityTab() {
       return;
     }
     try {
-      await api.put(`/users/${userId}`, {
+      const endpoint = userType === 'admin' ? 'admins' : 'users';
+      await api.put(`/${endpoint}/${userId}`, {
         password: newVal
       });
       setPassSaved(true);
@@ -321,6 +325,7 @@ function SecurityTab() {
 
 // ── NOTIFICATIONS TAB ─────────────────────────────────────────────────────────
 function NotificationsTab() {
+  const { type: userType } = useAuth();
   const [email, setEmail] = useState(true);
   const [sms, setSms] = useState(false);
   const [push, setPush] = useState(true);
@@ -337,7 +342,8 @@ function NotificationsTab() {
         const me = await api.get('/auth/me');
         if (me && me.id) {
           setUserId(me.id);
-          const user = await api.get(`/users/${me.id}`);
+          const endpoint = userType === 'admin' ? 'admins' : 'users';
+          const user = await api.get(`/${endpoint}/${me.id}`);
           if (user && user.settings) {
             setEmail(user.settings.notif_email !== false);
             setSms(user.settings.notif_sms === true);
@@ -354,15 +360,16 @@ function NotificationsTab() {
       }
     }
     loadNotifications();
-  }, []);
+  }, [userType]);
 
   async function updateNotifOption(key: string, val: boolean, setter: (v: boolean) => void) {
     setter(val);
     if (!userId) return;
     try {
-      const user = await api.get(`/users/${userId}`);
+      const endpoint = userType === 'admin' ? 'admins' : 'users';
+      const user = await api.get(`/${endpoint}/${userId}`);
       const currentSettings = user?.settings || {};
-      await api.put(`/users/${userId}`, {
+      await api.put(`/${endpoint}/${userId}`, {
         settings: {
           ...currentSettings,
           [key]: val
@@ -485,6 +492,7 @@ function BillingTab() {
 
 // ── INTEGRATIONS TAB ──────────────────────────────────────────────────────────
 function IntegrationsTab() {
+  const { type: userType } = useAuth();
   const [razorpay, setRazorpay] = useState(true);
   const [smtp, setSmtp] = useState(true);
   const [google, setGoogle] = useState(false);
@@ -498,7 +506,8 @@ function IntegrationsTab() {
         const me = await api.get('/auth/me');
         if (me && me.id) {
           setUserId(me.id);
-          const user = await api.get(`/users/${me.id}`);
+          const endpoint = userType === 'admin' ? 'admins' : 'users';
+          const user = await api.get(`/${endpoint}/${me.id}`);
           if (user && user.settings) {
             setRazorpay(user.settings.integration_razorpay !== false);
             setSmtp(user.settings.integration_smtp !== false);
@@ -515,15 +524,16 @@ function IntegrationsTab() {
       }
     }
     loadIntegrations();
-  }, []);
+  }, [userType]);
 
   async function updateVal(key: string, val: boolean, setter: (v: boolean) => void) {
     setter(val);
     if (!userId) return;
     try {
-      const user = await api.get(`/users/${userId}`);
+      const endpoint = userType === 'admin' ? 'admins' : 'users';
+      const user = await api.get(`/${endpoint}/${userId}`);
       const currentSettings = user?.settings || {};
-      await api.put(`/users/${userId}`, {
+      await api.put(`/${endpoint}/${userId}`, {
         settings: {
           ...currentSettings,
           [key]: val
@@ -553,9 +563,10 @@ function IntegrationsTab() {
     setKeys(newKeys);
 
     try {
-      const user = await api.get(`/users/${userId}`);
+      const endpoint = userType === 'admin' ? 'admins' : 'users';
+      const user = await api.get(`/${endpoint}/${userId}`);
       const currentSettings = user?.settings || {};
-      await api.put(`/users/${userId}`, {
+      await api.put(`/${endpoint}/${userId}`, {
         settings: {
           ...currentSettings,
           apiKeys: newKeys
@@ -573,9 +584,10 @@ function IntegrationsTab() {
     setKeys(newKeys);
 
     try {
-      const user = await api.get(`/users/${userId}`);
+      const endpoint = userType === 'admin' ? 'admins' : 'users';
+      const user = await api.get(`/${endpoint}/${userId}`);
       const currentSettings = user?.settings || {};
-      await api.put(`/users/${userId}`, {
+      await api.put(`/${endpoint}/${userId}`, {
         settings: {
           ...currentSettings,
           apiKeys: newKeys

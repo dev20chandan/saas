@@ -64,6 +64,7 @@ export const NAV = [
   { label: 'Analytics',       icon: ICONS.analytics,     href: '/analytics',     module: 'analytics' as DashboardModule },
   { label: 'Support Tickets', icon: ICONS.support,       href: '/support',       module: 'support' as DashboardModule },
   { label: 'Audit Logs',      icon: ICONS.audit,         href: '/audit',         module: 'audit' as DashboardModule },
+  { label: 'Admins',          icon: ICONS.users,         href: '/admins',        module: 'admins' as DashboardModule },
   { label: 'Settings',        icon: ICONS.settings,      href: '/settings',      module: 'settings' as DashboardModule },
 ];
 
@@ -75,7 +76,10 @@ export default function Sidebar({ open }: SidebarProps) {
   const pathname = usePathname();
   const { darkMode, toggleDark } = useTheme();
   const { token, role, permissions, signOut } = useAuth();
-  const visibleNav = NAV.filter((item) => hasModuleAccess(permissions, item.module));
+  const visibleNav = NAV.filter((item) => {
+    if (item.module === 'admins' && role !== 'owner') return false;
+    return hasModuleAccess(permissions, item.module);
+  });
 
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
 

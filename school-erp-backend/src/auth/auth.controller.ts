@@ -37,6 +37,15 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @Post('admin-login')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @ApiOperation({ summary: 'Admin login' })
+  @ApiResponse({ status: 200, description: 'Admin successfully logged in.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  adminLogin(@Body() loginDto: LoginDto) {
+    return this.authService.adminLogin(loginDto);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('me')
   @ApiBearerAuth('JWT-auth')

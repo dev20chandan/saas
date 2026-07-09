@@ -48,8 +48,8 @@ export default function SupportTicketsPage() {
   const { support: rawTickets, isLoading } = useSupport();
 
   const mappedTickets: Ticket[] = useMemo(() => {
-    return (rawTickets || []).map((t: any) => ({
-      id: t._id || t.id,
+    return (rawTickets || []).map((t: any, index: number) => ({
+      id: t._id || t.id || `ticket-${index}-${Date.now()}`,
       subject: t.subject || 'No Subject',
       schoolName: t.schoolName || t.schoolId || 'Unknown',
       submitter: t.submitter || 'Unknown',
@@ -195,14 +195,14 @@ export default function SupportTicketsPage() {
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-[#2a2d3a]">
                 {paginated.length === 0 ? (
-                  <tr>
+                  <tr key="empty-state">
                     <td colSpan={7} className="py-16 text-center">
                       <Icon d={ICONS.support} className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
                       <p className="text-sm font-semibold text-slate-400 dark:text-slate-600">No tickets found</p>
                     </td>
                   </tr>
-                ) : paginated.map(tkt => (
-                  <Fragment key={tkt.id}>
+                ) : paginated.map((tkt, idx) => (
+                  <Fragment key={tkt.id || `ticket-${idx}`}>
                     <tr className={`group hover:bg-slate-50/60 dark:hover:bg-white/[0.03] transition-colors cursor-pointer ${expandedId === tkt.id ? 'bg-slate-50/60 dark:bg-white/[0.03]' : ''}`}
                       onClick={() => setExpandedId(expandedId === tkt.id ? null : tkt.id)}>
                       <td className="pl-6 px-4 py-3.5">

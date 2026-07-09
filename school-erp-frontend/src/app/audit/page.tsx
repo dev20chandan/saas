@@ -49,8 +49,8 @@ export default function AuditLogPage() {
   const { audit: rawLogs, isLoading } = useAudit();
 
   const mappedLogs: AuditLog[] = useMemo(() => {
-    return (rawLogs || []).map((l: any) => ({
-      id: l._id || l.id,
+    return (rawLogs || []).map((l: any, index: number) => ({
+      id: l._id || l.id || `log-${index}-${Date.now()}`,
       timestamp: l.timestamp ? new Date(l.timestamp).toLocaleString() : new Date(l.createdAt || Date.now()).toLocaleString(),
       user: l.userEmail || l.userId || 'Unknown',
       role: l.role || 'Unknown',
@@ -195,14 +195,14 @@ export default function AuditLogPage() {
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-[#2a2d3a]">
                 {paginated.length === 0 ? (
-                  <tr>
+                  <tr key="empty-state">
                     <td colSpan={8} className="py-16 text-center">
                       <Icon d={ICONS.audit} className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
                       <p className="text-sm font-semibold text-slate-400 dark:text-slate-600">No events found</p>
                     </td>
                   </tr>
-                ) : paginated.map(log => (
-                  <Fragment key={log.id}>
+                ) : paginated.map((log, idx) => (
+                  <Fragment key={log.id || `log-${idx}`}>
                     <tr className={`group hover:bg-slate-50/60 dark:hover:bg-white/[0.03] transition-colors cursor-pointer ${expandedId === log.id ? 'bg-slate-50/60 dark:bg-white/[0.03]' : ''}`}
                       onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}>
                       <td className="pl-6 px-4 py-3.5">

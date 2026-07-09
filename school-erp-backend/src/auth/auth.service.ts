@@ -19,14 +19,8 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    let accountType: 'admin' | 'user' = 'admin';
-    let user: any = await this.adminsService.findByEmail(loginDto.email);
+    const user = await this.usersService.findByEmail(loginDto.email);
     
-    if (!user) {
-      user = await this.usersService.findByEmail(loginDto.email);
-      accountType = 'user';
-    }
-
     if (!user) {
       throw new UnauthorizedException('Invalid email or password');
     }
@@ -45,14 +39,10 @@ export class AuthService {
       email: user.email,
       role: user.role,
       schoolId: user.schoolId,
-      type: accountType,
+      type: 'user',
     };
 
-    if (accountType === 'admin') {
-      await this.adminsService.update(user.id, { lastLogin: new Date() } as any);
-    } else {
-      await this.usersService.update(user.id, { lastLogin: new Date() } as any);
-    }
+    await this.usersService.update(user.id, { lastLogin: new Date() } as any);
 
     return {
       token: this.jwtService.sign(payload),
@@ -65,6 +55,40 @@ export class AuthService {
         role: user.role,
         schoolId: user.schoolId,
         school: user.schoolName,
+      },
+    };
+  }
+
+  async adminLogin(loginDto: LoginDto) {
+    const admin = await this.adminsService.findByEmail(loginDto.email);
+    
+    if (!admin) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const isMatch = await bcrypt.compare(loginDto.password, admin.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    const payload = {
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+      type: 'admin',
+    };
+
+    await this.adminsService.update(admin.id, { lastLogin: new Date() } as any);
+
+    return {
+      token: this.jwtService.sign(payload),
+      role: admin.role,
+      user: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        role: admin.role,
+        settings: admin.settings,
       },
     };
   }
