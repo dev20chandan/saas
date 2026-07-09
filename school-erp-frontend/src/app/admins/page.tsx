@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { canPerform } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { useAdmins } from '@/hooks/useAdmins';
+import { useRouter } from 'next/navigation';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Role = 'owner' | 'Admin' | string;
@@ -53,8 +54,7 @@ export default function AdminsPage() {
   const [sortCol, setSortCol] = useState<keyof Admin>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingAdmin, setEditingAdmin] = useState<any | null>(null);
+  const router = useRouter();
   const { admins: rawAdmins, isLoading, mutate } = useAdmins();
 
   const mappedAdmins: Admin[] = useMemo(() => {
@@ -67,9 +67,9 @@ export default function AdminsPage() {
       school: u.school || '—',
       operator: u.operator || '—',
       status: (u.status || 'Active') as Status,
-      lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleDateString() : 'Never',
+      lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Never',
       phone: u.phone || '—',
-      createdAt: new Date(u.createdAt || Date.now()).toLocaleDateString(),
+      createdAt: new Date(u.createdAt || Date.now()).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
     }));
   }, [rawAdmins]);
 
@@ -208,7 +208,7 @@ export default function AdminsPage() {
               <button title="Export" className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-[#2a2d3a] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shadow-sm">
                 <Icon d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" className="w-4 h-4" />
               </button>
-              <button onClick={() => setShowAddModal(true)} className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center gap-2 shadow-sm shadow-blue-500/20 transition-colors">
+              <button onClick={() => router.push('/admins/create')} className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold flex items-center gap-2 shadow-sm shadow-blue-500/20 transition-colors">
                 <Icon d={ICONS.users} className="w-4 h-4" />
                 Add Admin
               </button>
@@ -293,7 +293,7 @@ export default function AdminsPage() {
                       </td>
                       <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => setEditingAdmin(admin)} title="Edit Admin" className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
+                          <button onClick={() => router.push(`/admins/${admin.id}/edit`)} title="Edit Admin" className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center justify-center transition-colors">
                             <Icon d={ICONS.edit} className="w-3.5 h-3.5" />
                           </button>
                           {canDeleteAdmins && (
@@ -327,7 +327,7 @@ export default function AdminsPage() {
                             ))}
                           </div>
                           <div className="flex gap-2 mt-4">
-                            <button onClick={() => setEditingAdmin(admin)} className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors">View Full Profile</button>
+                            <button onClick={() => router.push(`/admins/${admin.id}/edit`)} className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors">View Full Profile</button>
                             <button className="h-8 px-4 border border-slate-200 dark:border-[#2a2d3a] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-xs font-bold transition-colors">Send Email</button>
                             <button className={`h-8 px-4 rounded-lg text-xs font-bold transition-colors border ${admin.status === 'Locked'
                               ? 'border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 hover:bg-green-50'
@@ -369,277 +369,6 @@ export default function AdminsPage() {
 
         </div>
       </div>
-
-      {showAddModal && <AddAdminModal onClose={() => setShowAddModal(false)} onAdded={() => mutate()} />}
-      {editingAdmin && <EditAdminModal admin={editingAdmin} onClose={() => setEditingAdmin(null)} onUpdated={() => mutate()} />}
     </DashboardLayout>
   );
 }
-
-function EditAdminModal({ admin, onClose, onUpdated }: { admin: any, onClose: () => void, onUpdated: () => void }) {
-  const React = require('react');
-  const [name, setName] = React.useState(admin.name);
-  const [email, setEmail] = React.useState(admin.email);
-  const [password, setPassword] = React.useState('');
-  const [role, setRole] = React.useState(admin.role);
-
-  const modules = ['dashboard', 'schools', 'users', 'subscriptions', 'payments', 'analytics', 'support', 'audit', 'settings'];
-  const [permissions, setPermissions] = React.useState<Record<string, Record<string, boolean>>>(() => {
-    const init: any = {};
-    const existing = admin.settings?.permissions || {};
-    modules.forEach(m => {
-      init[m] = existing[m] || { view: false, edit: false, delete: false };
-    });
-    return init;
-  });
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
-
-  const togglePermission = (mod: string, action: 'view' | 'edit' | 'delete') => {
-    setPermissions((prev: any) => ({
-      ...prev,
-      [mod]: {
-        ...prev[mod],
-        [action]: !prev[mod][action]
-      }
-    }));
-  };
-
-  const toggleModule = (mod: string, enabled: boolean) => {
-    setPermissions((prev: any) => ({
-      ...prev,
-      [mod]: {
-        view: enabled,
-        edit: enabled,
-        delete: enabled
-      }
-    }));
-  };
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const dataToUpdate: any = { name, email, role, permissions };
-      if (password.trim() !== '') {
-        dataToUpdate.password = password;
-      }
-      const api = require('@/lib/api').api;
-      await api.put(`/admins/${admin.id}`, dataToUpdate);
-      onUpdated();
-      onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to update admin');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#1a1d27] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-[#2a2d3a]">
-        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-[#2a2d3a] flex items-center justify-between sticky top-0 bg-white dark:bg-[#1a1d27] z-10 rounded-t-2xl">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Edit Admin</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto">
-          {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Name</label>
-              <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
-              <input type="password" placeholder="Leave blank to keep same" value={password} onChange={e => setPassword(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Role</label>
-              <select value={role} onChange={e => setRole(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30">
-                <option value="Admin">Admin</option>
-                <option value="Sub Admin">Sub Admin</option>
-              </select>
-            </div>
-          </div>
-
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Module Permissions</h3>
-          <div className="border border-slate-200 dark:border-[#2a2d3a] rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-[#2a2d3a]">
-            {modules.map(mod => {
-              const p = permissions[mod];
-              const isAll = p.view && p.edit && p.delete;
-              return (
-                <div key={mod} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                  <div className="flex items-center gap-3 w-1/3">
-                    <input type="checkbox" checked={isAll} onChange={e => toggleModule(mod, e.target.checked)} className="w-4 h-4 rounded border-slate-300" />
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">{mod}</span>
-                  </div>
-                  <div className="flex items-center gap-6 w-2/3 justify-end">
-                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                      <input type="checkbox" checked={p.view} onChange={() => togglePermission(mod, 'view')} className="w-3.5 h-3.5 rounded border-slate-300" /> View
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                      <input type="checkbox" checked={p.edit} onChange={() => togglePermission(mod, 'edit')} className="w-3.5 h-3.5 rounded border-slate-300" /> Edit
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                      <input type="checkbox" checked={p.delete} onChange={() => togglePermission(mod, 'delete')} className="w-3.5 h-3.5 rounded border-slate-300" /> Delete
-                    </label>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 flex justify-end gap-3 sticky bottom-0 pt-4 bg-white dark:bg-[#1a1d27]">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5 transition-colors">Cancel</button>
-            <button type="submit" disabled={loading} className="px-6 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20 disabled:opacity-50 transition-colors">
-              {loading ? 'Updating...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function AddAdminModal({ onClose, onAdded }: { onClose: () => void, onAdded: () => void }) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Admin');
-
-  const modules = ['dashboard', 'schools', 'users', 'subscriptions', 'payments', 'analytics', 'support', 'audit', 'settings'];
-  const [permissions, setPermissions] = React.useState<Record<string, Record<string, boolean>>>(() => {
-    const init: any = {};
-    modules.forEach(m => {
-      init[m] = { view: true, edit: false, delete: false };
-    });
-    return init;
-  });
-
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState('');
-
-  const togglePermission = (mod: string, action: 'view' | 'edit' | 'delete') => {
-    setPermissions((prev: any) => ({
-      ...prev,
-      [mod]: {
-        ...prev[mod],
-        [action]: !prev[mod][action]
-      }
-    }));
-  };
-
-  const toggleModule = (mod: string, enabled: boolean) => {
-    setPermissions((prev: any) => ({
-      ...prev,
-      [mod]: {
-        view: enabled,
-        edit: enabled,
-        delete: enabled
-      }
-    }));
-  };
-
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const api = require('@/lib/api').api;
-      await api.post('/admins', {
-        name, email, password, role,
-        permissions
-      });
-      onAdded();
-      onClose();
-    } catch (err: any) {
-      setError(err.message || 'Failed to add admin');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#1a1d27] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-slate-200 dark:border-[#2a2d3a]">
-        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-[#2a2d3a] flex items-center justify-between sticky top-0 bg-white dark:bg-[#1a1d27] z-10 rounded-t-2xl">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add New Admin</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M18 6L6 18M6 6l12 12"></path></svg>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto">
-          {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Name</label>
-              <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Email</label>
-              <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Password</label>
-              <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Role</label>
-              <select value={role} onChange={e => setRole(e.target.value)} className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-transparent text-sm focus:ring-2 focus:ring-blue-500/30">
-                <option value="Admin">Admin</option>
-                <option value="Sub Admin">Sub Admin</option>
-              </select>
-            </div>
-          </div>
-
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Module Permissions</h3>
-          <div className="border border-slate-200 dark:border-[#2a2d3a] rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-[#2a2d3a]">
-            {modules.map(mod => {
-              const p = permissions[mod];
-              const isAll = p.view && p.edit && p.delete;
-              return (
-                <div key={mod} className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                  <div className="flex items-center gap-3 w-1/3">
-                    <input type="checkbox" checked={isAll} onChange={e => toggleModule(mod, e.target.checked)} className="w-4 h-4 rounded border-slate-300" />
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 capitalize">{mod}</span>
-                  </div>
-                  <div className="flex items-center gap-6 w-2/3 justify-end">
-                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                      <input type="checkbox" checked={p.view} onChange={() => togglePermission(mod, 'view')} className="w-3.5 h-3.5 rounded border-slate-300" /> View
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                      <input type="checkbox" checked={p.edit} onChange={() => togglePermission(mod, 'edit')} className="w-3.5 h-3.5 rounded border-slate-300" /> Edit
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                      <input type="checkbox" checked={p.delete} onChange={() => togglePermission(mod, 'delete')} className="w-3.5 h-3.5 rounded border-slate-300" /> Delete
-                    </label>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="mt-6 flex justify-end gap-3 sticky bottom-0 pt-4 bg-white dark:bg-[#1a1d27]">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5 transition-colors">Cancel</button>
-            <button type="submit" disabled={loading} className="px-6 py-2 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20 disabled:opacity-50 transition-colors">
-              {loading ? 'Creating...' : 'Create Admin'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-

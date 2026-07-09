@@ -37,6 +37,7 @@ export class AdminsService {
         role: true,
         status: true,
         createdAt: true,
+        lastLogin: true,
         settings: true,
       }
     });
