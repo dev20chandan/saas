@@ -61,7 +61,7 @@ function RevenueChart() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
   const { role } = useAuth();
-  
+
   // Use generic hooks
   const { stats, isLoading: statsLoading } = useStats();
   const { schools, isLoading: schoolsLoading } = useSchools();
@@ -88,12 +88,12 @@ export default function DashboardPage() {
   const inactiveUsers = stats.inactiveUsers || 0;
 
   const adjustedStats = [
-    { label: 'Total Schools',  value: String(totalSchools),  change: '+12.5%', up: true,  bg: 'bg-indigo-50 dark:bg-indigo-950/40', color: 'text-indigo-600 dark:text-indigo-300', icon: ICONS.schools },
-    { label: 'Active Schools', value: String(activeSchools), change: '+8.2%',  up: true,  bg: 'bg-green-50 dark:bg-green-950/40',  color: 'text-green-600 dark:text-green-300',  icon: ICONS.schools },
-    { label: 'Teachers',       value: String(totalTeachers), change: '+10.8%', up: true,  bg: 'bg-purple-50 dark:bg-purple-950/40', color: 'text-purple-600 dark:text-purple-300', icon: ICONS.users },
-    { label: 'Students',       value: String(totalStudents), change: '+15.3%', up: true,  bg: 'bg-blue-50 dark:bg-blue-950/40',   color: 'text-blue-600 dark:text-blue-300',   icon: ICONS.users },
-    { label: 'Pending Users',  value: String(pendingUsers),  change: '+5.4%',  up: true,  bg: 'bg-orange-50 dark:bg-orange-950/40', color: 'text-orange-500 dark:text-orange-300', icon: ICONS.users },
-    { label: 'Inactive Users', value: String(inactiveUsers), change: '+3.1%',  up: false, bg: 'bg-red-50 dark:bg-red-950/40',    color: 'text-red-500 dark:text-red-300',    icon: ICONS.users },
+    { label: 'Total Schools', value: String(totalSchools), change: '+12.5%', up: true, bg: 'bg-indigo-50 dark:bg-indigo-950/40', color: 'text-indigo-600 dark:text-indigo-300', icon: ICONS.schools },
+    { label: 'Active Schools', value: String(activeSchools), change: '+8.2%', up: true, bg: 'bg-green-50 dark:bg-green-950/40', color: 'text-green-600 dark:text-green-300', icon: ICONS.schools },
+    { label: 'Teachers', value: String(totalTeachers), change: '+10.8%', up: true, bg: 'bg-purple-50 dark:bg-purple-950/40', color: 'text-purple-600 dark:text-purple-300', icon: ICONS.users },
+    { label: 'Students', value: String(totalStudents), change: '+15.3%', up: true, bg: 'bg-blue-50 dark:bg-blue-950/40', color: 'text-blue-600 dark:text-blue-300', icon: ICONS.users },
+    { label: 'Pending Users', value: String(pendingUsers), change: '+5.4%', up: true, bg: 'bg-orange-50 dark:bg-orange-950/40', color: 'text-orange-500 dark:text-orange-300', icon: ICONS.users },
+    { label: 'Inactive Users', value: String(inactiveUsers), change: '+3.1%', up: false, bg: 'bg-red-50 dark:bg-red-950/40', color: 'text-red-500 dark:text-red-300', icon: ICONS.users },
   ];
 
   // Map dynamic activities (already prepared in useStats)
@@ -150,12 +150,12 @@ export default function DashboardPage() {
             </div>
             <div className="relative">
               <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-slate-400 dark:text-slate-500 font-medium py-1">
-                {['50K','40K','30K','20K','10K','0'].map(l => <span key={l}>{l}</span>)}
+                {['50K', '40K', '30K', '20K', '10K', '0'].map(l => <span key={l}>{l}</span>)}
               </div>
               <div className="pl-12">
                 <RevenueChart />
                 <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">
-                  {['Apr 27','May 4','May 11','May 18','May 26'].map(l => <span key={l}>{l}</span>)}
+                  {['Apr 27', 'May 4', 'May 11', 'May 18', 'May 26'].map(l => <span key={l}>{l}</span>)}
                 </div>
               </div>
             </div>
@@ -175,12 +175,12 @@ export default function DashboardPage() {
             </div>
             <div className="relative">
               <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-slate-400 dark:text-slate-500 font-medium py-1">
-                {['150','120','90','60','30','0'].map(l => <span key={l}>{l}</span>)}
+                {['150', '120', '90', '60', '30', '0'].map(l => <span key={l}>{l}</span>)}
               </div>
               <div className="pl-12">
                 <BarChart />
                 <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-1 font-medium">
-                  {['Apr 27','May 4','May 11','May 18','May 26'].map(l => <span key={l}>{l}</span>)}
+                  {['Apr 27', 'May 4', 'May 11', 'May 18', 'May 26'].map(l => <span key={l}>{l}</span>)}
                 </div>
               </div>
             </div>
@@ -220,7 +220,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <p className="text-sm font-extrabold text-green-600 mt-3">{activeSchools === totalSchools ? 'All Systems Go' : 'Some issues'}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-semibold">{totalSchools > 0 ? Math.round((activeSchools/totalSchools)*100) : 0}% active</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 font-semibold">{totalSchools > 0 ? Math.round((activeSchools / totalSchools) * 100) : 0}% active</p>
           </div>
         </div>
 

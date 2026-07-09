@@ -38,6 +38,7 @@ export class StatsService {
     let totalSchools = 0;
     let activeSchools = 0;
     let schoolAdmins = 0;
+    let schoolSubAdmins = 0;
     let studentsCount = 0;
     let teachersCount = 0;
     let pendingUsers = 0;
@@ -58,6 +59,9 @@ export class StatsService {
       schoolAdmins = await this.prisma.admin.count({
         where: { schoolId, role: 'Admin' },
       });
+      schoolSubAdmins = await this.prisma.admin.count({
+        where: { schoolId, role: 'Subadmin' },
+      });
       const dbTeachers = await this.prisma.user.count({
         where: { schoolId, role: 'Teacher' },
       });
@@ -77,6 +81,7 @@ export class StatsService {
         where: { status: { in: ['Active', 'Trial'] } },
       });
       schoolAdmins = await this.prisma.admin.count({ where: { role: 'Admin' } });
+      const schoolSubAdmins = await this.prisma.admin.count({ where: { role: 'Subadmin' } });
 
       const schoolAggregations = await this.prisma.school.aggregate({
         _sum: {
@@ -144,6 +149,7 @@ export class StatsService {
         totalSchools,
         activeSchools,
         schoolAdmins,
+        schoolSubAdmins,
         teachers: teachersCount,
         students: studentsCount,
         pendingUsers,

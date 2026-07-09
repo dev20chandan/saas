@@ -1,6 +1,7 @@
 import useSWR from 'swr';
 import { api } from '@/lib/api';
 import { ICONS } from '@/components/dashboard/Sidebar';
+import { useAuth } from '@/lib/AuthContext';
 
 // Best Practice: Define interfaces for expected data
 export interface Activity {
@@ -11,10 +12,15 @@ export interface Activity {
 }
 
 export interface DashboardStats {
+  totalSchools?: number;
+  activeSchools?: number;
+  pendingUsers?: number;
+  inactiveUsers?: number;
   totalStudents?: number;
   totalTeachers?: number;
   counters?: {
     schoolAdmins?: number;
+    schoolSubAdmins?: number;
     [key: string]: any;
   };
   recentActivities?: Activity[];
@@ -22,6 +28,8 @@ export interface DashboardStats {
 }
 
 export function useStats() {
+  const { role } = useAuth();
+
   // Best Practice: Use centralized api.fetcher and generic types
   const { data: stats, error, isLoading, mutate } = useSWR<DashboardStats>(
     '/stats/dashboard', 
@@ -37,14 +45,17 @@ export function useStats() {
   const studentsCount = stats.totalStudents || 0;
   const teachersCount = stats.totalTeachers || 0;
   const adminCount = stats.counters?.schoolAdmins || 0;
+  const subAdminCount = stats.counters?.schoolSubAdmins || 0;
   const parentsCount = Math.floor(studentsCount * 0.4); 
-  const totalUsers = studentsCount + teachersCount + adminCount + parentsCount;
-
+  const totalUsers = studentsCount + teachersCount + adminCount + subAdminCount + parentsCount;
+  
   const dynamicUserDistribution = [
     { role: 'Students', count: studentsCount, percent: totalUsers ? Math.round((studentsCount/totalUsers)*100) : 0, color: 'bg-blue-500' },
     { role: 'Parents',  count: parentsCount,  percent: totalUsers ? Math.round((parentsCount/totalUsers)*100) : 0, color: 'bg-purple-500' },
     { role: 'Teachers', count: teachersCount, percent: totalUsers ? Math.round((teachersCount/totalUsers)*100) : 0, color: 'bg-emerald-500' },
-    { role: 'Admins',   count: adminCount,    percent: totalUsers ? Math.round((adminCount/totalUsers)*100) : 0, color: 'bg-orange-500' },
+    ...(role === 'owner' ? [
+      { role: 'Admins', count: adminCount + subAdminCount, percent: totalUsers ? Math.round(((adminCount + subAdminCount)/totalUsers)*100) : 0, color: 'bg-orange-500' }
+    ] : []),
   ];
 
   let dynamicActivities = (stats.recentActivities || []).map((act, i) => ({
