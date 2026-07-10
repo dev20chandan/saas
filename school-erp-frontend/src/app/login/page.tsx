@@ -175,22 +175,30 @@ export default function LoginPage() {
         <div className="col-span-1 lg:col-span-7 flex flex-col justify-center items-center px-6 py-12 md:px-16 lg:px-24 bg-slate-50/50">
           <div className="w-full max-w-[400px] bg-white border border-slate-200/80 rounded-2xl p-8 shadow-sm">
             {/* Header logo for mobile */}
-            <div className="flex items-center space-x-2 mb-6 lg:hidden">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-extrabold text-sm shadow-md">
-                ERP
+            <div className="flex items-center justify-between mb-6 lg:hidden">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-extrabold text-sm shadow-md">
+                  ERP
+                </div>
+                <span className="text-base font-bold text-slate-900">
+                  SchoolSaaS
+                </span>
               </div>
-              <span className="text-base font-bold text-slate-900">
-                SchoolSaaS
-              </span>
+            </div>
+
+            <div className="hidden lg:flex justify-end w-full mb-2">
+              <Link href="/school-login" className="text-xs font-semibold text-slate-500 hover:text-green-600 transition-colors">
+                Go to School Portal &rarr;
+              </Link>
             </div>
 
             {/* Title & Subtitle */}
             <div className="mb-6">
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                Admin Sign In
+                System Admin Sign In
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Use one of the 3 demo accounts. Password: {DEFAULT_PASSWORD}
+                Enter your system owner credentials below.
               </p>
             </div>
 
@@ -285,8 +293,6 @@ export default function LoginPage() {
 
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[11px] text-slate-500 leading-5">
                 <p><span className="font-semibold text-slate-700">Owner:</span> owner@schoolsaas.in</p>
-                <p><span className="font-semibold text-slate-700">Admin:</span> admin@schoolsaas.in</p>
-                <p><span className="font-semibold text-slate-700">Sub Admin:</span> subadmin@schoolsaas.in</p>
                 <p className="mt-1">All accounts use the same password: <span className="font-semibold text-slate-700">{DEFAULT_PASSWORD}</span></p>
               </div>
 
@@ -342,9 +348,9 @@ export default function LoginPage() {
 
             {/* SSO Register link */}
             <p className="text-xs text-slate-500 mt-6 text-center">
-              Don&apos;t have a school account?{' '}
-              <Link href="/register" className="text-blue-600 hover:underline font-semibold">
-                Register your school
+              Are you a school user?{' '}
+              <Link href="/school-login" className="text-green-600 hover:underline font-semibold">
+                Go to School Login
               </Link>
             </p>
           </div>
