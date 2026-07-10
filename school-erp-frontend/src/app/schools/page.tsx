@@ -202,7 +202,6 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
       setSubmitting(false);
       onSuccess(school);
     } catch (err: any) {
-      console.error(err);
       alert(err.message || 'Error occurred while registering school');
       setSubmitting(false);
     }

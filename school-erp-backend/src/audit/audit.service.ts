@@ -5,6 +5,22 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async create(data: any) {
+    const eventId = 'EVT-' + Date.now() + Math.floor(Math.random() * 1000);
+    return this.prisma.auditLog.create({
+      data: {
+        eventId,
+        user: data.user || 'Unknown',
+        role: data.role || 'User',
+        action: data.action || 'PAGE_VIEW',
+        resource: data.resource || 'Unknown',
+        status: data.status || 'Success',
+        ipAddress: data.ipAddress || 'Client',
+        payload: data.payload || {},
+      },
+    });
+  }
+
   async findAll() {
     const items = await this.prisma.auditLog.findMany({
       orderBy: { createdAt: 'desc' },

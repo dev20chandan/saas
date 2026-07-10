@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
 import { UpdateSchoolDto } from './dto/update-school.dto';
@@ -14,36 +14,72 @@ export class SchoolsService {
 
   async create(createSchoolDto: CreateSchoolDto) {
     const { adminName, adminEmail, adminPassword, adminPhone, operator, ...schoolData } = createSchoolDto;
+    
+    if (adminEmail) {
+      const email = adminEmail.toLowerCase();
+      const [existingAdmin, existingUser] = await Promise.all([
+        this.prisma.admin.findUnique({ where: { email } }),
+        this.prisma.user.findUnique({ where: { email } })
+      ]);
+      
+      if (existingAdmin || existingUser) {
+        throw new BadRequestException('An account with this admin email already exists.');
+      }
+    }
+    
     const code = schoolData.code?.trim() || this.generateSchoolCode();
     
-    const school = await this.prisma.school.create({
-      data: {
-        ...schoolData,
-        code,
-        status: schoolData.status || 'Trial',
-        operator,
-      },
-    });
-
-    if (adminName && adminEmail && adminPassword) {
-      const bcrypt = require('bcrypt');
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
-      
-      await this.prisma.admin.create({
-        data: {
-          name: adminName,
-          email: adminEmail.toLowerCase(),
-          password: hashedPassword,
-          role: 'Admin',
-          schoolId: school.id,
-          schoolName: school.name,
-          phone: adminPhone,
-          operator: operator,
-        }
-      });
+    const existingSchool = await this.prisma.school.findUnique({ where: { code } });
+    if (existingSchool) {
+      throw new BadRequestException('A school with this code already exists. Please choose a different code.');
     }
+    
+    return this.prisma.$transaction(async (tx) => {
+      const school = await tx.school.create({
+        data: {
+          ...schoolData,
+          code,
+          status: schoolData.status || 'Trial',
+          operator,
+        },
+      });
 
-    return school;
+      if (adminName && adminEmail && adminPassword) {
+        const bcrypt = require('bcrypt');
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        
+        await tx.admin.create({
+          data: {
+            name: adminName,
+            email: adminEmail.toLowerCase(),
+            password: hashedPassword,
+            role: 'Admin',
+            schoolId: school.id,
+            schoolName: school.name,
+            phone: adminPhone,
+            operator: operator,
+          }
+        });
+        
+        // Also create a regular User account for this admin so they can login to the main portal
+        await tx.user.create({
+          data: {
+            name: adminName,
+            email: adminEmail.toLowerCase(),
+            password: hashedPassword,
+            role: 'Admin',
+            schoolId: code,
+            schoolUuid: school.id,
+            schoolName: school.name,
+            phone: adminPhone,
+            operator: operator,
+            status: 'Active',
+          }
+        });
+      }
+
+      return school;
+    });
   }
 
   async findAll(query: {
@@ -144,7 +180,27 @@ export class SchoolsService {
     if (!school) {
       throw new NotFoundException(`School with ID "${id}" not found`);
     }
-    return this.prisma.school.delete({ where: { id } });
+
+    return this.prisma.$transaction(async (tx) => {
+      // Unassign users instead of deleting them
+      await tx.user.updateMany({
+        where: { schoolUuid: id },
+        data: { schoolUuid: null, schoolId: 'UNASSIGNED', schoolName: null },
+      });
+
+      // Unassign admins instead of deleting them
+      await tx.admin.updateMany({
+        where: { schoolId: id },
+        data: { schoolId: 'UNASSIGNED', schoolName: null },
+      });
+
+      // Delete dependent records
+      await tx.ticket.deleteMany({ where: { schoolId: id } });
+      await tx.activity.deleteMany({ where: { schoolUuid: id } });
+
+      // Finally delete the school
+      return tx.school.delete({ where: { id } });
+    });
   }
 
   async getStats() {

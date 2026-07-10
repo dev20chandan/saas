@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { AuthProvider } from "@/lib/AuthContext";
+import PageTracker from "@/components/PageTracker";
 
 export const metadata: Metadata = {
   title: "SchoolSaaS ERP – India's #1 School Management Platform",
@@ -17,7 +18,10 @@ export default function RootLayout({
     <html lang="en" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <PageTracker />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

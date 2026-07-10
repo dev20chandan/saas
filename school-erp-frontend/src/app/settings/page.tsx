@@ -26,7 +26,7 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boo
       aria-checked={checked}
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none cursor-pointer
-        ${checked ? 'bg-blue-600' : 'bg-slate-200'}`}
+        ${checked ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`}
     >
       <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out
         ${checked ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -38,9 +38,9 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boo
 function SettingCard({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-[#1a1d27] rounded-2xl border border-slate-100 dark:border-[#2a2d3a] shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-100">
-        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
-        {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+      <div className="px-6 py-4 border-b border-slate-100 dark:border-[#2a2d3a]">
+        <h3 className="text-sm font-bold text-slate-900 dark:text-white">{title}</h3>
+        {description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>}
       </div>
       <div className="p-6 space-y-5">{children}</div>
     </div>
@@ -51,11 +51,11 @@ function SettingCard({ title, description, children }: { title: string; descript
 function Field({ label, id, ...rest }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; id: string }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs font-semibold text-slate-600">{label}</label>
+      <label htmlFor={id} className="block text-xs font-semibold text-slate-600 dark:text-slate-400">{label}</label>
       <input
         id={id}
         {...rest}
-        className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+        className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition dark:[&:-webkit-autofill]:[-webkit-text-fill-color:#fff] dark:[&:-webkit-autofill]:[transition:background-color_9999999s_ease-in-out_0s]"
       />
     </div>
   );
@@ -65,12 +65,12 @@ function Field({ label, id, ...rest }: React.InputHTMLAttributes<HTMLInputElemen
 function SelectField({ label, id, options, value, onChange }: { label: string; id: string; options: string[]; value: string; onChange: (v: string) => void }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-xs font-semibold text-slate-600">{label}</label>
+      <label htmlFor={id} className="block text-xs font-semibold text-slate-600 dark:text-slate-400">{label}</label>
       <select
         id={id}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white"
+        className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-white dark:bg-[#1a1d27] text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
       >
         {options.map(o => <option key={o}>{o}</option>)}
       </select>
@@ -83,8 +83,8 @@ function ToggleRow({ id, label, description, checked, onChange }: { id: string; 
   return (
     <div className="flex items-center justify-between gap-4 py-1">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800">{label}</p>
-        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{description}</p>
       </div>
       <Toggle id={id} checked={checked} onChange={onChange} />
     </div>
@@ -119,6 +119,8 @@ function GeneralTab() {
   const [lang, setLang] = useState('English');
   const [currency, setCurrency] = useState('INR (₹)');
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+  const [maintenance, setMaintenance] = useState(false);
+  const [debug, setDebug] = useState(false);
 
   function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
 
@@ -145,8 +147,8 @@ function GeneralTab() {
       </SettingCard>
 
       <SettingCard title="Maintenance Mode" description="Temporarily disable access to the platform">
-        <ToggleRow id="maintenance" label="Enable Maintenance Mode" description="When enabled, users will see a maintenance page" checked={false} onChange={() => { }} />
-        <ToggleRow id="debug" label="Debug Mode" description="Show detailed error messages to administrators" checked={false} onChange={() => { }} />
+        <ToggleRow id="maintenance" label="Enable Maintenance Mode" description="When enabled, users will see a maintenance page" checked={maintenance} onChange={setMaintenance} />
+        <ToggleRow id="debug" label="Debug Mode" description="Show detailed error messages to administrators" checked={debug} onChange={setDebug} />
       </SettingCard>
     </div>
   );
@@ -165,7 +167,7 @@ function ProfileTab() {
             SA
           </div>
           <div>
-            <button className="flex items-center gap-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl px-4 h-9 transition-colors">
+            <button className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-200 dark:border-blue-500/20 rounded-xl px-4 h-9 transition-colors">
               <Icon d={ICONS.upload} className="w-4 h-4" /> Upload Photo
             </button>
             <p className="text-[10px] text-slate-400 mt-1.5">JPG, PNG or GIF · max 2 MB</p>
@@ -299,20 +301,20 @@ function SecurityTab() {
           { device: 'iPhone 15 Pro', location: 'Delhi, India', time: '2 hours ago', current: false },
           { device: 'Chrome – Windows', location: 'Bangalore, India', time: 'Yesterday', current: false },
         ].map((s, i) => (
-          <div key={i} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+          <div key={i} className="flex items-center justify-between py-3 border-b border-slate-50 dark:border-[#2a2d3a] last:border-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 flex-shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-[#2a2d3a] flex items-center justify-center text-slate-500 dark:text-slate-400 flex-shrink-0">
                 <Icon d={ICONS.shield} className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-800">{s.device}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{s.device}</p>
                 <p className="text-[10px] text-slate-400">{s.location} · {s.time}</p>
               </div>
             </div>
             {s.current ? (
-              <span className="text-[10px] font-extrabold px-2 py-1 rounded-full bg-green-100 text-green-700">Current</span>
+              <span className="text-[10px] font-extrabold px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">Current</span>
             ) : (
-              <button className="text-[10px] font-bold text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1 transition-colors">
+              <button className="text-[10px] font-bold text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg px-3 py-1 transition-colors">
                 Revoke
               </button>
             )}
@@ -416,15 +418,15 @@ function BillingTab() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-extrabold text-slate-900">Enterprise Plan</span>
-              <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">Active</span>
+              <span className="text-lg font-extrabold text-slate-900 dark:text-white">Enterprise Plan</span>
+              <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">Active</span>
             </div>
             <p className="text-xs text-slate-500">Unlimited schools · Priority Support · Custom domain</p>
-            <p className="text-xs text-slate-400 mt-1">Renews on <strong className="text-slate-700">June 30, 2026</strong></p>
+            <p className="text-xs text-slate-400 mt-1">Renews on <strong className="text-slate-700 dark:text-slate-200">June 30, 2026</strong></p>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-extrabold text-slate-900">₹99,999<span className="text-sm text-slate-400 font-medium">/yr</span></p>
-            <button className="mt-2 text-xs font-bold text-blue-600 hover:underline border border-blue-200 hover:bg-blue-50 rounded-lg px-3 py-1.5 transition-colors">
+            <p className="text-2xl font-extrabold text-slate-900 dark:text-white">₹99,999<span className="text-sm text-slate-400 font-medium">/yr</span></p>
+            <button className="mt-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline border border-blue-200 dark:border-blue-500/20 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg px-3 py-1.5 transition-colors">
               Upgrade Plan
             </button>
           </div>
@@ -436,8 +438,8 @@ function BillingTab() {
             { label: 'Storage', value: '10 TB' },
             { label: 'Support', value: '24/7 Priority' },
           ].map(m => (
-            <div key={m.label} className="text-center p-3 bg-slate-50 rounded-xl">
-              <p className="text-sm font-extrabold text-slate-900">{m.value}</p>
+            <div key={m.label} className="text-center p-3 bg-slate-50 dark:bg-white/5 rounded-xl">
+              <p className="text-sm font-extrabold text-slate-900 dark:text-white">{m.value}</p>
               <p className="text-[10px] text-slate-500 mt-0.5">{m.label}</p>
             </div>
           ))}
@@ -445,22 +447,22 @@ function BillingTab() {
       </SettingCard>
 
       <SettingCard title="Payment Method" description="Manage your payment methods">
-        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-200 dark:border-[#2a2d3a]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-7 bg-blue-700 rounded-md flex items-center justify-center">
               <span className="text-white font-extrabold text-[10px] tracking-wider">VISA</span>
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-800">•••• •••• •••• 4242</p>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200">•••• •••• •••• 4242</p>
               <p className="text-[10px] text-slate-400">Expires 12/27</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700">Default</span>
-            <button className="text-[10px] font-bold text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg px-2 py-1 transition-colors">Edit</button>
+            <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">Default</span>
+            <button className="text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 border border-slate-200 dark:border-[#2a2d3a] rounded-lg px-2 py-1 transition-colors">Edit</button>
           </div>
         </div>
-        <button className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">
+        <button className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mt-2">
           <Icon d={ICONS.credit} className="w-4 h-4" /> Add Payment Method
         </button>
       </SettingCard>
@@ -472,15 +474,15 @@ function BillingTab() {
             { id: 'INV-2024-06', date: 'Jun 1, 2024', amount: '₹79,999', status: 'Paid' },
             { id: 'INV-2023-06', date: 'Jun 1, 2023', amount: '₹59,999', status: 'Paid' },
           ].map(inv => (
-            <div key={inv.id} className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+            <div key={inv.id} className="flex items-center justify-between py-3 border-b border-slate-50 dark:border-[#2a2d3a] last:border-0">
               <div>
-                <p className="text-xs font-bold text-slate-800">{inv.id}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{inv.id}</p>
                 <p className="text-[10px] text-slate-400">{inv.date}</p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-slate-800">{inv.amount}</span>
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-green-100 text-green-700">{inv.status}</span>
-                <button className="text-[10px] font-bold text-blue-600 hover:underline">Download</button>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{inv.amount}</span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400">{inv.status}</span>
+                <button className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">Download</button>
               </div>
             </div>
           ))}
@@ -627,7 +629,7 @@ function IntegrationsTab() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${item.connected ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${item.connected ? 'bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-slate-100 text-slate-500 dark:bg-[#2a2d3a] dark:text-slate-400'}`}>
                     {item.connected ? 'Connected' : 'Disconnected'}
                   </span>
                   <Toggle id={item.id} checked={item.connected} onChange={item.toggle} />
@@ -651,13 +653,13 @@ function IntegrationsTab() {
                   <p className="text-[10px] text-slate-400 mt-0.5">Created {k.created}</p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
-                  <button onClick={() => handleCopy(k.key)} className="text-[10px] font-bold text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg px-3 py-1.5 transition-colors">Copy</button>
-                  <button onClick={() => revokeKey(k.id)} className="text-[10px] font-bold text-red-500 border border-red-200 hover:bg-red-50 rounded-lg px-3 py-1.5 transition-colors">Revoke</button>
+                  <button onClick={() => handleCopy(k.key)} className="text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg px-3 py-1.5 transition-colors">Copy</button>
+                  <button onClick={() => revokeKey(k.id)} className="text-[10px] font-bold text-red-500 dark:text-red-400 border border-red-200 dark:border-red-500/20 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg px-3 py-1.5 transition-colors">Revoke</button>
                 </div>
               </div>
             );
           })}
-          <button onClick={generateNewKey} className="flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors mt-1">
+          <button onClick={generateNewKey} className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mt-1">
             <Icon d={ICONS.key} className="w-4 h-4" /> Generate New API Key
           </button>
         </div>
@@ -696,11 +698,11 @@ export default function SettingsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-left transition-all mb-0.5
                     ${activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white'
                     }`}
                 >
-                  <Icon d={tab.icon} className={`w-4 h-4 flex-shrink-0 ${activeTab === tab.id ? 'text-blue-600' : 'text-slate-400'}`} />
+                  <Icon d={tab.icon} className={`w-4 h-4 flex-shrink-0 ${activeTab === tab.id ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`} />
                   {tab.label}
                 </button>
               ))}
