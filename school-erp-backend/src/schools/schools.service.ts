@@ -17,13 +17,10 @@ export class SchoolsService {
     
     if (adminEmail) {
       const email = adminEmail.toLowerCase();
-      const [existingAdmin, existingUser] = await Promise.all([
-        this.prisma.admin.findUnique({ where: { email } }),
-        this.prisma.user.findUnique({ where: { email } })
-      ]);
+      const existingUser = await this.prisma.user.findUnique({ where: { email } });
       
-      if (existingAdmin || existingUser) {
-        throw new BadRequestException('An account with this admin email already exists.');
+      if (existingUser) {
+        throw new BadRequestException('An account with this email already exists.');
       }
     }
     
@@ -48,20 +45,6 @@ export class SchoolsService {
         const bcrypt = require('bcrypt');
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
         
-        await tx.admin.create({
-          data: {
-            name: adminName,
-            email: adminEmail.toLowerCase(),
-            password: hashedPassword,
-            role: 'Admin',
-            schoolId: school.id,
-            schoolName: school.name,
-            phone: adminPhone,
-            operator: operator,
-          }
-        });
-        
-        // Also create a regular User account for this admin so they can login to the main portal
         await tx.user.create({
           data: {
             name: adminName,
@@ -110,7 +93,7 @@ export class SchoolsService {
     }
 
     const skip = (page - 1) * limit;
-    const [schools, total] = await Promise.all([
+    const [schools, total] = await this.prisma.$transaction([
       this.prisma.school.findMany({
         where,
         orderBy: { createdAt: 'desc' },

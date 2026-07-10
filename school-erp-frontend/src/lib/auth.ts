@@ -31,12 +31,6 @@ export const AUTH_STORAGE_KEYS = {
 export const DEFAULT_ROLE: AdminRole = "owner";
 export const DEFAULT_PASSWORD = "School@123";
 
-export const MOCK_CREDENTIALS: MockCredential[] = [
-  { email: "owner@schoolsaas.in", password: DEFAULT_PASSWORD, role: "owner" },
-  { email: "admin@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Admin" },
-  { email: "subadmin@schoolsaas.in", password: DEFAULT_PASSWORD, role: "Sub Admin" },
-];
-
 export const ROLE_DISPLAY_NAMES: Record<AdminRole, string> = {
   "owner": "Owner",
   "Admin": "Admin",
@@ -131,6 +125,11 @@ export function parsePermissions(value: string | null | undefined): ModulePermis
   }
 }
 
+export function hasPermission(role: AdminRole, module: DashboardModule, action: PermissionAction): boolean {
+  const permissions = getDefaultPermissions(role);
+  return permissions[module][action];
+}
+
 export function hasModuleAccess(permissions: ModulePermissions, module: DashboardModule) {
   return Boolean(permissions[module]?.view);
 }
@@ -159,12 +158,6 @@ export function readStoredPermissions() {
   return parsePermissions(localStorage.getItem(AUTH_STORAGE_KEYS.permissions)) ?? getDefaultPermissions(readStoredRole());
 }
 
-export function resolveMockCredential(email: string, password: string) {
-  const normalizedEmail = normalizeEmail(email);
-  return MOCK_CREDENTIALS.find(
-    (credential) => credential.email === normalizedEmail && credential.password === password,
-  ) ?? null;
-}
 
 export function mapBackendRoleToFrontend(role: string): AdminRole {
   if (role === 'System Admin' || role === 'owner' || role === 'Super Admin') return 'owner';

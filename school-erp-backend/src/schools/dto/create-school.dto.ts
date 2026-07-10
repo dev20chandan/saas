@@ -1,4 +1,18 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum, IsNumber } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum, IsNumber, Matches } from 'class-validator';
+
+export enum SchoolPlan {
+  Basic = 'Basic',
+  Standard = 'Standard',
+  Premium = 'Premium',
+  Enterprise = 'Enterprise',
+}
+
+export enum SchoolStatus {
+  Trial = 'Trial',
+  Active = 'Active',
+  Suspended = 'Suspended',
+  Expired = 'Expired',
+}
 
 export class CreateSchoolDto {
   @IsString()
@@ -29,13 +43,13 @@ export class CreateSchoolDto {
   @IsNotEmpty()
   principal: string;
 
-  @IsString()
+  @IsEnum(SchoolPlan)
   @IsOptional()
-  plan?: string;
+  plan?: SchoolPlan;
 
-  @IsString()
+  @IsEnum(SchoolStatus)
   @IsOptional()
-  status?: string;
+  status?: SchoolStatus;
 
   @IsNumber()
   @IsOptional()
@@ -51,6 +65,7 @@ export class CreateSchoolDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Phone number must be between 10 and 15 digits' })
   phone: string;
 
   @IsString()
@@ -71,5 +86,6 @@ export class CreateSchoolDto {
 
   @IsString()
   @IsOptional()
+  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Admin phone number must be between 10 and 15 digits' })
   adminPhone?: string;
 }

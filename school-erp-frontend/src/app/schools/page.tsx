@@ -6,28 +6,11 @@ import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 import { useAuth } from '@/lib/AuthContext';
 import { canPerform } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { useSchools } from '@/hooks/useSchools';
+import { useSchools, School, Plan, Status } from '@/hooks/useSchools';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Status = 'Active' | 'Trial' | 'Expired' | 'Suspended';
-type Plan   = 'Basic' | 'Standard' | 'Premium' | 'Enterprise';
 
-interface School {
-  id:         string;
-  name:       string;
-  code:       string;
-  type:       string;
-  city:       string;
-  state:      string;
-  plan:       Plan;
-  status:     Status;
-  students:   number;
-  teachers:   number;
-  joined:     string;
-  email:      string;
-  phone:      string;
-  operator:   string;
-}
+
 
 // No mock data needed, we use real API
 
@@ -184,7 +167,7 @@ function RegistrationModal({ onClose, onSuccess }: { onClose: () => void; onSucc
       };
       const response = await api.post('/schools', payload);
       const school: School = {
-        id: response._id,
+        id: response.id,
         name: response.name,
         code: response.code,
         type: response.type || 'CBSE',

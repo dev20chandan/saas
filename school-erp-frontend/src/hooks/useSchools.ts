@@ -2,14 +2,26 @@ import useSWR from 'swr';
 import { api } from '@/lib/api';
 
 // Best Practice: Define interfaces for your data
+export type Plan = 'Basic' | 'Standard' | 'Premium' | 'Enterprise';
+export type Status = 'Trial' | 'Active' | 'Expired' | 'Suspended';
+
 export interface School {
   id: string;
   name: string;
+  code: string;
+  type: string;
+  city: string;
+  state: string;
+  plan: Plan;
+  status: Status;
+  students: number;
+  teachers: number;
+  joined: string;
   email: string;
-  phone?: string;
+  phone: string;
+  operator: string;
+  createdAt?: string;
   address?: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
 }
 
 export interface SchoolsResponse {

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { getDefaultPermissions, resolveMockCredential } from '@/lib/auth';
+import { getDefaultPermissions } from '@/lib/auth';
+import { api } from '@/lib/api';
 
 interface CredentialsStepProps {
   schoolId: string;
@@ -31,23 +32,17 @@ export default function CredentialsStep({
       setError('Email aur password dono bharo');
       return;
     }
-    const credential = resolveMockCredential(email, password);
-    if (!credential) {
-      setError('Invalid email ya password');
-      return;
-    }
-    setLoading(true);
-    setError('');
     try {
-      // Mock login for frontend testing without backend connection
-      const mockAccessToken = 'mock-jwt-token-12345';
+      const response = await api.post('/auth/login', { email, password, schoolId }, { requireAuth: false });
       
-      localStorage.setItem('token', mockAccessToken);
-      localStorage.setItem('role', credential.role);
-      localStorage.setItem('permissions', JSON.stringify(getDefaultPermissions(credential.role)));
-      onSuccess(mockAccessToken, credential.role, credential.role === 'owner' ? '' : schoolId);
-    } catch {
-      setError('Server se connect nahi ho paya. Dobara try karo.');
+      const role = response.role || 'Teacher';
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('role', role);
+      localStorage.setItem('permissions', JSON.stringify(getDefaultPermissions(role as any)));
+      
+      onSuccess(response.token, role, schoolId);
+    } catch (err: any) {
+      setError(err?.message || 'Server se connect nahi ho paya. Dobara try karo.');
     } finally {
       setLoading(false);
     }

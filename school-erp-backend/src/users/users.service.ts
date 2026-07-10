@@ -91,7 +91,7 @@ export class UsersService {
     }
 
     const skip = (page - 1) * limit;
-    const [users, total] = await Promise.all([
+    const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
         orderBy: { createdAt: 'desc' },

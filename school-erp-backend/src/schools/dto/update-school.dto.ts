@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsEmail, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNumber, IsEnum, Matches } from 'class-validator';
+import { SchoolPlan, SchoolStatus } from './create-school.dto';
 
 export class UpdateSchoolDto {
   @IsString()
@@ -29,13 +30,13 @@ export class UpdateSchoolDto {
   @IsOptional()
   principal?: string;
 
-  @IsString()
+  @IsEnum(SchoolPlan)
   @IsOptional()
-  plan?: string;
+  plan?: SchoolPlan;
 
-  @IsString()
+  @IsEnum(SchoolStatus)
   @IsOptional()
-  status?: string;
+  status?: SchoolStatus;
 
   @IsNumber()
   @IsOptional()
@@ -51,6 +52,7 @@ export class UpdateSchoolDto {
 
   @IsString()
   @IsOptional()
+  @Matches(/^\+?[0-9]{10,15}$/, { message: 'Phone number must be between 10 and 15 digits' })
   phone?: string;
 
   @IsString()

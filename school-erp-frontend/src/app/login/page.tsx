@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/AuthContext';
 import {
   DEFAULT_PASSWORD,
   getDefaultPermissions,
-  resolveMockCredential,
   mapBackendRoleToFrontend,
 } from '@/lib/auth';
 import { api } from '@/lib/api';
