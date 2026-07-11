@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, ValidateNested, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class AttendanceRecordDto {
@@ -17,8 +17,8 @@ export class SubmitAttendanceDto {
   date: string; // YYYY-MM-DD
 
   @IsString()
-  @IsNotEmpty()
-  schoolId: string;
+  @IsOptional()
+  schoolId?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

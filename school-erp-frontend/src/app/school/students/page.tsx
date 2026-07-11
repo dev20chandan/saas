@@ -162,7 +162,6 @@ export default function SchoolStudentsPage() {
         email: formData.email,
         phone: formData.phone,
         status: formData.status,
-        role: 'Student',
         schoolId: schoolId,
         settings: {
           rollNumber: formData.rollNumber,
@@ -220,7 +219,6 @@ export default function SchoolStudentsPage() {
           name: ds.name,
           email: ds.email,
           password: 'Student@123',
-          role: 'Student',
           schoolId: schoolId,
           status: 'Active',
           phone: '+91 99999 11111',

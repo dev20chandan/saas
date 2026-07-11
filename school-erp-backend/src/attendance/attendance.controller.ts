@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { AttendanceService } from './attendance.service';
@@ -31,6 +32,9 @@ export class AttendanceController {
   async submit(@Request() req, @Body() submitAttendanceDto: SubmitAttendanceDto) {
     if (req.user.role === 'Admin' || req.user.role === 'Teacher') {
       submitAttendanceDto.schoolId = req.user.schoolId;
+    }
+    if (!submitAttendanceDto.schoolId) {
+      throw new BadRequestException('schoolId should not be empty');
     }
     return this.attendanceService.submit(submitAttendanceDto);
   }

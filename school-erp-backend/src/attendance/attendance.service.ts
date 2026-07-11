@@ -34,7 +34,7 @@ export class AttendanceService {
             studentId,
             status,
             date,
-            schoolId,
+            schoolId: schoolId!,
           },
         });
       }

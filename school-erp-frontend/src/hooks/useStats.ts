@@ -18,6 +18,7 @@ export interface DashboardStats {
   inactiveUsers?: number;
   totalStudents?: number;
   totalTeachers?: number;
+  monthlyActiveUsers?: number;
   counters?: {
     schoolAdmins?: number;
     schoolSubAdmins?: number;

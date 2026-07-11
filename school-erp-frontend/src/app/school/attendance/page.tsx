@@ -5,6 +5,7 @@ import SchoolLayout from '@/components/school/SchoolLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 import { api } from '@/lib/api';
 import useSWR from 'swr';
+import { useAuth } from '@/lib/AuthContext';
 
 interface AttendanceRecord {
   studentId: string;
@@ -15,12 +16,15 @@ interface AttendanceRecord {
 
 const fetcher = (url: string) => api.get(url);
 
+const EMPTY_ARRAY: any[] = [];
+
 export default function SchoolAttendancePage() {
+  const { schoolId } = useAuth();
   const { data: studentsData, mutate } = useSWR('/students?limit=250', fetcher, {
     revalidateOnFocus: false,
   });
 
-  const students = studentsData?.users || [];
+  const students = studentsData?.users || EMPTY_ARRAY;
 
   const [selectedClass, setSelectedClass] = useState('10-A');
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -90,7 +94,7 @@ export default function SchoolAttendancePage() {
     if (classStudents.length > 0) {
       loadLogs();
     } else {
-      setAttendanceRecords({});
+      setAttendanceRecords(prev => Object.keys(prev).length > 0 ? {} : prev);
     }
     
     setIsSavedSuccessfully(false);
@@ -166,6 +170,7 @@ export default function SchoolAttendancePage() {
 
       await api.post('/attendance/submit', {
         date: selectedDate,
+        schoolId,
         records
       });
 
@@ -193,6 +198,7 @@ export default function SchoolAttendancePage() {
 
       await api.post('/attendance/submit', {
         date: selectedDate,
+        schoolId,
         records
       });
 
