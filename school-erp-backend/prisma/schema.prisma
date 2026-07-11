@@ -30,6 +30,7 @@ model School {
   users      User[]
   tickets    Ticket[]
   activities Activity[]
+  studentRecords Student[]
 }
 
 model Admin {
@@ -112,4 +113,41 @@ model AuditLog {
   payload   Json
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Student {
+  id             String       @id @default(uuid())
+  name           String
+  email          String?      @unique
+  password       String?
+  phone          String?
+  status         String       @default("Active")
+  schoolId       String
+  schoolUuid     String?
+  schoolName     String?
+  rollNumber     String
+  className      String
+  guardianName   String
+  dob            String?
+  gender         String       @default("Male")
+  bloodGroup     String?      @default("O+")
+  feeStatus      String       @default("Pending")
+  attendanceRate Int          @default(95)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  school         School?      @relation(fields: [schoolUuid], references: [id])
+  attendances    Attendance[]
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  studentId  String
+  status     String
+  date       String
+  schoolId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }

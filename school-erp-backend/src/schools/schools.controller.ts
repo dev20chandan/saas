@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Put, Param, Delete, Query, UsePipes, ValidationPipe, UseGuards, Request, ForbiddenException, } from '@nestjs/common';
+import { Controller, Get, Post, Body, Put, Param, Delete, Query, UsePipes, ValidationPipe, UseGuards, Request, ForbiddenException, NotFoundException, } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { SchoolsService } from './schools.service';
 import { CreateSchoolDto } from './dto/create-school.dto';
@@ -60,26 +60,40 @@ export class SchoolsController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get school details by ID' })
-  @ApiParam({ name: 'id', description: 'School ID' })
+  @ApiParam({ name: 'id', description: 'School ID or Code' })
   @ApiResponse({ status: 200, description: 'School retrieved successfully.' })
   @ApiResponse({ status: 403, description: 'Forbidden. You do not have access to this school.' })
   @ApiResponse({ status: 404, description: 'School not found.' })
-  findOne(@Request() req, @Param('id') id: string) {
-    if (req.user.role !== 'owner' && req.user.schoolId !== id) {
+  async findOne(@Request() req, @Param('id') id: string) {
+    let school = await this.schoolsService.findOne(id).catch(() => null);
+    if (!school) {
+      school = await this.schoolsService.findByCode(id);
+    }
+    if (!school) {
+      throw new NotFoundException(`School with ID or Code "${id}" not found`);
+    }
+    if (req.user.role !== 'owner' && req.user.schoolId !== school.code && req.user.schoolId !== school.id) {
       throw new ForbiddenException('You do not have access to this school');
     }
-    return this.schoolsService.findOne(id);
+    return school;
   }
 
   @Put(':id')
   @UsePipes(new ValidationPipe({ transform: true }))
   @ApiOperation({ summary: 'Update school details by ID' })
-  @ApiParam({ name: 'id', description: 'School ID' })
+  @ApiParam({ name: 'id', description: 'School ID or Code' })
   @ApiResponse({ status: 200, description: 'School successfully updated.' })
   @ApiResponse({ status: 403, description: 'Forbidden. You do not have access to this school.' })
   @ApiResponse({ status: 404, description: 'School not found.' })
-  update(@Request() req, @Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
-    if (req.user.role !== 'owner' && req.user.schoolId !== id) {
+  async update(@Request() req, @Param('id') id: string, @Body() updateSchoolDto: UpdateSchoolDto) {
+    let school = await this.schoolsService.findOne(id).catch(() => null);
+    if (!school) {
+      school = await this.schoolsService.findByCode(id);
+    }
+    if (!school) {
+      throw new NotFoundException(`School with ID or Code "${id}" not found`);
+    }
+    if (req.user.role !== 'owner' && req.user.schoolId !== school.code && req.user.schoolId !== school.id) {
       throw new ForbiddenException('You do not have access to this school');
     }
     // Prevent non-owner from changing core plan billing metrics or Board validation code
@@ -88,7 +102,7 @@ export class SchoolsController {
       delete (updateSchoolDto as any).status;
       delete (updateSchoolDto as any).code;
     }
-    return this.schoolsService.update(id, updateSchoolDto);
+    return this.schoolsService.update(school.id, updateSchoolDto);
   }
 
   @Delete(':id')

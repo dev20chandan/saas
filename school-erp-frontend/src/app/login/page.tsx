@@ -21,6 +21,8 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isForgot, setIsForgot] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (isReady && token) {
@@ -46,6 +48,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError('');
+    setSuccessMessage('');
     try {
       const response = await api.post('/auth/admin-login', { email, password }, { requireAuth: false });
       const mappedRole = mapBackendRoleToFrontend(response.role);
@@ -61,6 +64,26 @@ export default function LoginPage() {
       router.push('/dashboard');
     } catch (err: any) {
       setError(err?.message || 'Server se connect nahi ho paya. Dobara try karo.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Email and new password are required.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      await api.post('/auth/forgot-password', { email, password }, { requireAuth: false });
+      setSuccessMessage('Password updated successfully! You can login now.');
+      setIsForgot(false);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to update password. Check if email exists.');
     } finally {
       setLoading(false);
     }
@@ -195,15 +218,15 @@ export default function LoginPage() {
             {/* Title & Subtitle */}
             <div className="mb-6">
               <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                System Admin Sign In
+                {isForgot ? 'Reset Password' : 'System Admin Sign In'}
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Enter your system owner credentials below.
+                {isForgot ? 'Enter your email and new password to reset.' : 'Enter your system owner credentials below.'}
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={isForgot ? handleForgotPassword : handleLogin} className="space-y-4">
               {/* Email Address */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-755">
@@ -231,7 +254,7 @@ export default function LoginPage() {
               {/* Password */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-slate-755">
-                  Password
+                  {isForgot ? 'New Password' : 'Password'}
                 </label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3.5 text-slate-400 pointer-events-none">
@@ -246,7 +269,7 @@ export default function LoginPage() {
                       setPassword(e.target.value);
                       setError('');
                     }}
-                    placeholder="Enter your password"
+                    placeholder={isForgot ? 'Enter new password' : 'Enter your password'}
                     className="w-full h-11 pl-11 pr-12 border border-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl text-sm focus:outline-none bg-slate-50/50 hover:bg-slate-50 text-slate-900 placeholder-slate-400 transition-colors"
                   />
                   <button
@@ -270,21 +293,51 @@ export default function LoginPage() {
 
               {/* Remember me & Forgot Password */}
               <div className="flex items-center justify-between text-xs pt-1">
-                <label className="flex items-center space-x-2 text-slate-500 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-slate-200 rounded focus:ring-blue-500 accent-blue-600"
-                  />
-                  <span>Remember me</span>
-                </label>
-                <Link href="#" className="text-blue-600 hover:underline font-medium">
-                  Forgot password?
-                </Link>
+                {isForgot ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgot(false);
+                      setError('');
+                      setSuccessMessage('');
+                    }}
+                    className="text-blue-600 hover:underline font-medium ml-auto"
+                  >
+                    Back to Sign In
+                  </button>
+                ) : (
+                  <>
+                    <label className="flex items-center space-x-2 text-slate-500 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-slate-200 rounded focus:ring-blue-500 accent-blue-600"
+                      />
+                      <span>Remember me</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgot(true);
+                        setError('');
+                        setSuccessMessage('');
+                      }}
+                      className="text-blue-600 hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </button>
+                  </>
+                )}
               </div>
 
-              {/* Error box */}
+              {/* Error and Success boxes */}
+              {successMessage && (
+                <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mt-2 font-medium animate-fade-in">
+                  {successMessage}
+                </p>
+              )}
+
               {error && (
                 <p className="text-xs text-red-650 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mt-2 font-medium">
                   {error}
@@ -296,20 +349,20 @@ export default function LoginPage() {
                 <p className="mt-1">All accounts use the same password: <span className="font-semibold text-slate-700">{DEFAULT_PASSWORD}</span></p>
               </div>
 
-              {/* Sign In Button */}
+              {/* Sign In / Reset Password Button */}
               <button
                 type="submit"
                 disabled={loading}
                 className="w-full h-11 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-xl text-sm font-semibold transition-all duration-200 mt-6 flex items-center justify-center space-x-2 shadow-md shadow-blue-500/10"
               >
                 {loading ? (
-                  <span>Signing in…</span>
+                  <span>{isForgot ? 'Updating…' : 'Signing in…'}</span>
                 ) : (
                   <>
                     <svg className="w-3.5 h-3.5 text-blue-200" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                     </svg>
-                    <span>Sign in</span>
+                    <span>{isForgot ? 'Reset Password' : 'Sign in'}</span>
                   </>
                 )}
               </button>

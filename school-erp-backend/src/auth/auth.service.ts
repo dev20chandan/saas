@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { AdminsService } from '../admins/admins.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,26 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     return this.usersService.create(registerDto);
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const email = forgotPasswordDto.email.toLowerCase();
+
+    // Check if it is a school user
+    const user = await this.usersService.findByEmail(email);
+    if (user) {
+      await this.usersService.update(user.id, { password: forgotPasswordDto.password } as any);
+      return { message: 'School user password updated successfully' };
+    }
+
+    // Check if it is an admin
+    const admin = await this.adminsService.findByEmail(email);
+    if (admin) {
+      await this.adminsService.update(admin.id, { password: forgotPasswordDto.password } as any);
+      return { message: 'Admin password updated successfully' };
+    }
+
+    throw new NotFoundException('No user or admin found with this email address');
   }
 
   async login(loginDto: LoginDto) {

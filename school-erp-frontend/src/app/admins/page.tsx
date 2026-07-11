@@ -242,7 +242,7 @@ export default function AdminsPage() {
                 {paginated.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-16 text-center">
-                      <Icon d={ICONS.admins} className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
+                      <Icon d={ICONS.users} className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto mb-3" />
                       <p className="text-sm font-semibold text-slate-400 dark:text-slate-600">No admins found</p>
                       <p className="text-xs text-slate-300 dark:text-slate-700 mt-1">Try adjusting your search or filters</p>
                     </td>

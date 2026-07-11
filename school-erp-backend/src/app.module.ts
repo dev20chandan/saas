@@ -13,6 +13,8 @@ import { SupportModule } from './support/support.module';
 import { AuditModule } from './audit/audit.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AdminsModule } from './admins/admins.module';
+import { StudentsModule } from './students/students.module';
+import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { AdminsModule } from './admins/admins.module';
     SupportModule,
     AuditModule,
     AdminsModule,
+    StudentsModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [
