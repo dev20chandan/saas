@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const fallbackPort = process.env.NEXT_PUBLIC_API_PORT || '5001';
+const fallbackPort = process.env.NEXT_PUBLIC_API_PORT || '5000';
 const fallbackBaseUrl = typeof window !== 'undefined'
   ? `http://${window.location.hostname}:${fallbackPort}`
   : `http://localhost:${fallbackPort}`;
