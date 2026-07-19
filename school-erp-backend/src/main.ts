@@ -13,6 +13,7 @@ async function bootstrap() {
 
   // Security Headers
   app.use(helmet());
+  // Force watch compilation reload
 
 
   // Compression

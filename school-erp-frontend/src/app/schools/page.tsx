@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect, Fragment } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 import { useAuth } from '@/lib/AuthContext';
@@ -490,7 +491,8 @@ function SuccessToast({ name, onClose }: { name: string; onClose: () => void }) 
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function SchoolsPage() {
-  const { permissions } = useAuth();
+  const { permissions, impersonateSchool } = useAuth();
+  const router = useRouter();
   const canDeleteSchools = canPerform(permissions, 'schools', 'delete');
   const [search, setSearch]         = useState('');
   const [statusFilter, setStatus]   = useState<Status | 'All'>('All');
@@ -531,6 +533,25 @@ export default function SchoolsPage() {
       setToast('School deleted successfully');
     } catch (err: any) {
       alert(err.message || 'Failed to delete school');
+    }
+  }
+
+  async function handleImpersonate(schoolId: string) {
+    try {
+      const response = await api.post(`/auth/impersonate/${schoolId}`);
+      if (response && response.token) {
+        impersonateSchool({
+          token: response.token,
+          role: response.role,
+          schoolId: response.schoolId,
+          permissions: response.user?.settings?.permissions,
+        });
+        router.push('/school/dashboard');
+      } else {
+        alert("Failed to enter school portal: Invalid response from server.");
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error occurred while entering school portal');
     }
   }
 
@@ -761,6 +782,13 @@ export default function SchoolsPage() {
                       </td>
                       <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            title="Enter School Portal (Impersonate)"
+                            onClick={() => handleImpersonate(school.id)}
+                            className="w-7 h-7 rounded-lg bg-green-50 dark:bg-green-950/50 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/60 flex items-center justify-center transition-colors"
+                          >
+                            <Icon d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" className="w-3.5 h-3.5" />
+                          </button>
                           <button title="View" className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 flex items-center justify-center transition-colors">
                             <Icon d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" className="w-3.5 h-3.5" />
                           </button>
@@ -826,7 +854,14 @@ export default function SchoolsPage() {
                               ))}
                             </div>
                           </div>
-                          <div className="flex gap-2 mt-4">
+                          <div className="flex gap-2 mt-4 flex-wrap">
+                            <button
+                              onClick={() => handleImpersonate(school.id)}
+                              className="h-8 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 hover:scale-105"
+                            >
+                              <Icon d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" className="w-3.5 h-3.5" />
+                              Enter School Portal
+                            </button>
                             <button className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors">View Full Profile</button>
                             <button className="h-8 px-4 border border-slate-200 dark:border-[#2a2d3a] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 rounded-lg text-xs font-bold transition-colors">Send Email</button>
                             <button className={`h-8 px-4 rounded-lg text-xs font-bold transition-colors ${school.status === 'Active'

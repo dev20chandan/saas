@@ -39,3 +39,27 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
 .dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+/* ── Dynamic School Theme Overrides ──────────────────────────────── */
+.school-theme {
+  --school-color: #10b981; /* Fallback */
+
+  /* Override green scale to use our school color */
+  --color-green-50: color-mix(in srgb, var(--school-color) 5%, #ffffff);
+  --color-green-100: color-mix(in srgb, var(--school-color) 12%, #ffffff);
+  --color-green-200: color-mix(in srgb, var(--school-color) 25%, #ffffff);
+  --color-green-300: color-mix(in srgb, var(--school-color) 45%, #ffffff);
+  --color-green-400: color-mix(in srgb, var(--school-color) 70%, #ffffff);
+  --color-green-500: var(--school-color);
+  --color-green-600: color-mix(in srgb, var(--school-color) 88%, #000000);
+  --color-green-700: color-mix(in srgb, var(--school-color) 75%, #000000);
+  --color-green-800: color-mix(in srgb, var(--school-color) 62%, #000000);
+  --color-green-900: color-mix(in srgb, var(--school-color) 50%, #000000);
+  --color-green-950: color-mix(in srgb, var(--school-color) 35%, #000000);
+}
+
+.dark .school-theme {
+  --color-green-50: color-mix(in srgb, var(--school-color) 8%, #1a1d27);
+  --color-green-100: color-mix(in srgb, var(--school-color) 15%, #1a1d27);
+  --color-green-200: color-mix(in srgb, var(--school-color) 30%, #1a1d27);
+}

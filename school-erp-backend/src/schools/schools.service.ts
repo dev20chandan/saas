@@ -141,6 +141,7 @@ export class SchoolsService {
       'phone',
       'operator',
       'joined',
+      'themeColor',
     ];
     for (const field of writableFields) {
       if ((updateSchoolDto as any)[field] !== undefined) {

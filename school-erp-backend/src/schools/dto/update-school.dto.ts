@@ -58,4 +58,8 @@ export class UpdateSchoolDto {
   @IsString()
   @IsOptional()
   operator?: string;
+
+  @IsString()
+  @IsOptional()
+  themeColor?: string;
 }

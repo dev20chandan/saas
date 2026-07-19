@@ -116,6 +116,37 @@ export class UsersService {
     return this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
   }
 
+  async findSchoolAdmin(schoolIdOrUuid: string) {
+    let user = await this.prisma.user.findFirst({
+      where: {
+        schoolUuid: schoolIdOrUuid,
+        role: 'Admin',
+      },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: {
+          schoolId: schoolIdOrUuid,
+          role: 'Admin',
+        },
+      });
+    }
+
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: {
+          OR: [
+            { schoolUuid: schoolIdOrUuid },
+            { schoolId: schoolIdOrUuid }
+          ],
+        },
+      });
+    }
+
+    return user;
+  }
+
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {

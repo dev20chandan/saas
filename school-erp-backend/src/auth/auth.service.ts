@@ -113,4 +113,33 @@ export class AuthService {
       },
     };
   }
+
+  async impersonate(schoolId: string) {
+    const user = await this.usersService.findSchoolAdmin(schoolId);
+    if (!user) {
+      throw new NotFoundException('No user or admin found for this school. Cannot impersonate.');
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      schoolId: user.schoolId,
+      type: 'user',
+    };
+
+    return {
+      token: this.jwtService.sign(payload),
+      role: user.role,
+      schoolId: user.schoolId,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        schoolId: user.schoolId,
+        school: user.schoolName,
+      },
+    };
+  }
 }

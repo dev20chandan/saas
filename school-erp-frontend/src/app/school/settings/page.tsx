@@ -87,7 +87,7 @@ function SaveBtn({ onClick, saved }: { onClick: () => void; saved: boolean }) {
 
 // ── Profile Tab ──
 function SchoolProfileTab() {
-  const { schoolId } = useAuth();
+  const { schoolId, setSchoolColor } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
   const [profile, setProfile] = useState({
@@ -98,6 +98,7 @@ function SchoolProfileTab() {
     phone: '+91 99999 88888',
     city: 'Hyderabad',
     board: 'CBSE Board',
+    themeColor: '#10b981',
   });
 
   useEffect(() => {
@@ -109,11 +110,12 @@ function SchoolProfileTab() {
           setProfile({
             name: sc.name || '',
             domain: sc.domain || '',
-            principal: sc.contactPerson || 'Dr. K. Nair',
+            principal: sc.principal || sc.contactPerson || 'Dr. K. Nair',
             email: sc.email || '',
             phone: sc.phone || '',
             city: sc.city || 'Delhi',
             board: sc.plan || 'CBSE Board',
+            themeColor: sc.themeColor || '#10b981',
           });
         }
       } catch (err) {
@@ -133,9 +135,13 @@ function SchoolProfileTab() {
           name: profile.name,
           email: profile.email,
           phone: profile.phone,
-          contactPerson: profile.principal,
+          principal: profile.principal,
           city: profile.city,
+          themeColor: profile.themeColor,
         });
+
+        // Set state globally in AuthContext to update immediately across layout
+        setSchoolColor(profile.themeColor);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -201,6 +207,49 @@ function SchoolProfileTab() {
             onChange={e => setProfile({ ...profile, phone: e.target.value })}
             className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-[#2a2d3a] bg-white dark:bg-[#1a1d27] text-sm text-slate-905 dark:text-white"
           />
+        </div>
+        <div className="col-span-1 sm:col-span-2 border-t border-slate-100 dark:border-slate-800 my-2" />
+        <div className="col-span-1 sm:col-span-2 space-y-3">
+          <label className="block text-xs font-semibold text-slate-650 dark:text-slate-400">School Dashboard Theme Color</label>
+          <div className="flex flex-wrap items-center gap-3">
+            {[
+              { name: 'Emerald', hex: '#10b981' },
+              { name: 'Indigo', hex: '#4f46e5' },
+              { name: 'Violet', hex: '#8b5cf6' },
+              { name: 'Blue', hex: '#3b82f6' },
+              { name: 'Amber', hex: '#f59e0b' },
+              { name: 'Rose', hex: '#f43f5e' },
+              { name: 'Slate', hex: '#64748b' },
+            ].map((col) => (
+              <button
+                key={col.hex}
+                type="button"
+                onClick={() => setProfile({ ...profile, themeColor: col.hex })}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center border-2 transition-all relative
+                  ${profile.themeColor.toLowerCase() === col.hex.toLowerCase() 
+                    ? 'border-slate-850 scale-110 shadow-md shadow-black/10 dark:border-white' 
+                    : 'border-transparent hover:scale-105'}`}
+                style={{ backgroundColor: col.hex }}
+                title={col.name}
+              >
+                {profile.themeColor.toLowerCase() === col.hex.toLowerCase() && (
+                  <span className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
+                )}
+              </button>
+            ))}
+            
+            {/* Custom Color Input */}
+            <div className="flex items-center gap-2 pl-3 border-l border-slate-200 dark:border-[#2a2d3a]">
+              <span className="text-xs text-slate-500 font-medium">Custom:</span>
+              <input
+                type="color"
+                value={profile.themeColor}
+                onChange={e => setProfile({ ...profile, themeColor: e.target.value })}
+                className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 outline-none"
+              />
+              <span className="text-xs font-mono uppercase text-slate-600 dark:text-slate-300 font-semibold">{profile.themeColor}</span>
+            </div>
+          </div>
         </div>
       </div>
       <SaveBtn onClick={handleSave} saved={saved} />

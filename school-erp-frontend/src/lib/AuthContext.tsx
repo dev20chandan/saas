@@ -10,6 +10,7 @@ import {
   type AdminRole,
   type ModulePermissions,
 } from "./auth";
+import { api } from "./api";
 
 interface AuthContextValue {
   token: string | null;
@@ -18,8 +19,13 @@ interface AuthContextValue {
   schoolId: string;
   permissions: ModulePermissions;
   isReady: boolean;
+  isImpersonating: boolean;
+  schoolColor: string;
+  setSchoolColor: (color: string) => void;
   signIn: (payload: { token: string; role: AdminRole; type?: 'admin' | 'user'; schoolId?: string; permissions?: ModulePermissions }) => void;
   signOut: () => void;
+  impersonateSchool: (payload: { token: string; role: AdminRole; schoolId: string; permissions?: ModulePermissions }) => void;
+  stopImpersonating: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue>({
@@ -29,8 +35,13 @@ const AuthContext = createContext<AuthContextValue>({
   schoolId: "",
   permissions: getDefaultPermissions(DEFAULT_ROLE),
   isReady: false,
+  isImpersonating: false,
+  schoolColor: "#10b981",
+  setSchoolColor: () => {},
   signIn: () => {},
   signOut: () => {},
+  impersonateSchool: () => {},
+  stopImpersonating: () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -40,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [schoolId, setSchoolId] = useState("");
   const [permissions, setPermissions] = useState<ModulePermissions>(getDefaultPermissions(DEFAULT_ROLE));
   const [isReady, setIsReady] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [schoolColor, setSchoolColor] = useState("#10b981");
 
   useEffect(() => {
     const nextToken = localStorage.getItem(AUTH_STORAGE_KEYS.token);
@@ -47,6 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nextType = (localStorage.getItem(AUTH_STORAGE_KEYS.type) as 'admin' | 'user') || 'admin';
     const nextSchoolId = localStorage.getItem(AUTH_STORAGE_KEYS.schoolId) ?? "";
     const storedPermissions = localStorage.getItem(AUTH_STORAGE_KEYS.permissions);
+    const hasParentToken = !!localStorage.getItem("systemAdminToken");
+    const cachedColor = nextSchoolId ? localStorage.getItem(`school_theme_${nextSchoolId}`) : null;
 
     const timeoutId = window.setTimeout(() => {
       setToken(nextToken);
@@ -54,13 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setType(nextType);
       setSchoolId(nextSchoolId);
       setPermissions(parsePermissions(storedPermissions) ?? getDefaultPermissions(nextRole));
+      setIsImpersonating(hasParentToken);
+      if (cachedColor) {
+        setSchoolColor(cachedColor);
+      }
       setIsReady(true);
     }, 0);
 
     // Listen for global unauthorized events from the api client
     const handleUnauthorized = () => {
       signOut();
-      // Optionally redirect to login page here, e.g. window.location.href = '/login';
     };
     window.addEventListener('auth:unauthorized', handleUnauthorized);
 
@@ -69,6 +87,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('auth:unauthorized', handleUnauthorized);
     };
   }, []);
+
+  // Hydrate and fetch school theme color from DB
+  useEffect(() => {
+    if (!schoolId) {
+      setSchoolColor("#10b981");
+      return;
+    }
+
+    api.get(`/schools/${schoolId}`)
+      .then((res) => {
+        if (res && res.themeColor) {
+          setSchoolColor(res.themeColor);
+          localStorage.setItem(`school_theme_${schoolId}`, res.themeColor);
+        }
+      })
+      .catch((e) => console.error("Error loading theme color inside AuthContext:", e));
+  }, [schoolId]);
+
+  function handleSetSchoolColor(color: string) {
+    setSchoolColor(color);
+    if (schoolId) {
+      localStorage.setItem(`school_theme_${schoolId}`, color);
+    }
+  }
 
   function signIn({
     token: nextToken,
@@ -93,7 +135,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setType(nextType);
     setSchoolId(nextSchoolId);
     setPermissions(storedPermissions);
+    
+    // Fallback load of school theme immediately upon login if cached
+    if (nextSchoolId) {
+      const cachedColor = localStorage.getItem(`school_theme_${nextSchoolId}`);
+      if (cachedColor) {
+        setSchoolColor(cachedColor);
+      }
+    }
     setIsReady(true);
+  }
+
+  function impersonateSchool({
+    token: schoolToken,
+    role: schoolRole,
+    schoolId: schoolIdValue,
+    permissions: schoolPermissions,
+  }: { token: string; role: AdminRole; schoolId: string; permissions?: ModulePermissions }) {
+    const currentToken = localStorage.getItem(AUTH_STORAGE_KEYS.token) ?? "";
+    const currentRole = localStorage.getItem(AUTH_STORAGE_KEYS.role) ?? "";
+    const currentType = localStorage.getItem(AUTH_STORAGE_KEYS.type) ?? "";
+    const currentPermissions = localStorage.getItem(AUTH_STORAGE_KEYS.permissions) ?? "";
+
+    localStorage.setItem("systemAdminToken", currentToken);
+    localStorage.setItem("systemAdminRole", currentRole);
+    localStorage.setItem("systemAdminType", currentType);
+    localStorage.setItem("systemAdminPermissions", currentPermissions);
+
+    // Warm up the cached state if we have it
+    const cachedColor = localStorage.getItem(`school_theme_${schoolIdValue}`);
+    if (cachedColor) {
+      setSchoolColor(cachedColor);
+    }
+
+    signIn({
+      token: schoolToken,
+      role: schoolRole,
+      type: 'user',
+      schoolId: schoolIdValue,
+      permissions: schoolPermissions,
+    });
+    setIsImpersonating(true);
+  }
+
+  function stopImpersonating() {
+    const parentToken = localStorage.getItem("systemAdminToken");
+    const parentRole = normalizeRole(localStorage.getItem("systemAdminRole"));
+    const parentType = (localStorage.getItem("systemAdminType") as 'admin' | 'user') || 'admin';
+    const parentPermissions = parsePermissions(localStorage.getItem("systemAdminPermissions")) ?? getDefaultPermissions(parentRole);
+
+    localStorage.removeItem("systemAdminToken");
+    localStorage.removeItem("systemAdminRole");
+    localStorage.removeItem("systemAdminType");
+    localStorage.removeItem("systemAdminPermissions");
+
+    signIn({
+      token: parentToken || "",
+      role: parentRole,
+      type: parentType,
+      schoolId: "",
+      permissions: parentPermissions,
+    });
+    setIsImpersonating(false);
   }
 
   function signOut() {
@@ -102,16 +205,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(AUTH_STORAGE_KEYS.type);
     localStorage.removeItem(AUTH_STORAGE_KEYS.schoolId);
     localStorage.removeItem(AUTH_STORAGE_KEYS.permissions);
+    
+    // Also clean up impersonation tracking keys
+    localStorage.removeItem("systemAdminToken");
+    localStorage.removeItem("systemAdminRole");
+    localStorage.removeItem("systemAdminType");
+    localStorage.removeItem("systemAdminPermissions");
+
     setToken(null);
     setRole(DEFAULT_ROLE);
     setType('admin');
     setSchoolId("");
     setPermissions(getDefaultPermissions(DEFAULT_ROLE));
+    setSchoolColor("#10b981");
+    setIsImpersonating(false);
     setIsReady(true);
   }
 
   return (
-    <AuthContext.Provider value={{ token, role, type, schoolId, permissions, isReady, signIn, signOut }}>
+    <AuthContext.Provider value={{ token, role, type, schoolId, permissions, isReady, isImpersonating, schoolColor, setSchoolColor: handleSetSchoolColor, signIn, signOut, impersonateSchool, stopImpersonating }}>
       {children}
     </AuthContext.Provider>
   );

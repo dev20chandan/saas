@@ -6,6 +6,7 @@ import SchoolSidebar from '@/components/school/SchoolSidebar';
 import { useAuth } from '@/lib/AuthContext';
 import { getRoleDisplayName } from '@/lib/auth';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
+import { api } from '@/lib/api';
 
 // ── Top Bar ───────────────────────────────────────────────────────────────────
 interface TopbarProps {
@@ -61,7 +62,7 @@ interface SchoolLayoutProps {
 export default function SchoolLayout({ children, title, subtitle }: SchoolLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const router = useRouter();
-  const { token, role, isReady } = useAuth();
+  const { token, role, schoolId, isReady, isImpersonating, stopImpersonating, schoolColor } = useAuth();
 
   useEffect(() => {
     if (!isReady) return;
@@ -84,22 +85,46 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
   // We'll allow them for testing.
 
   return (
-    <div className="flex min-h-screen bg-[#f5fdf4] dark:bg-[#0f1117] font-sans text-slate-800 dark:text-slate-100">
-      <SchoolSidebar open={sidebarOpen} />
+    <div 
+      className="school-theme flex flex-col min-h-screen bg-green-50/20 dark:bg-[#0f1117] font-sans text-slate-800 dark:text-slate-100"
+      style={{ '--school-color': schoolColor } as React.CSSProperties}
+    >
+      {/* Impersonation Banner */}
+      {isImpersonating && (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white text-xs font-bold px-4 py-2.5 flex items-center justify-between shadow-sm z-30 transition-all">
+          <div className="flex items-center gap-2">
+            <span className="text-base animate-pulse">⚠️</span>
+            <span>You are logged into School Portal as <strong>{role}</strong> (School Code: <strong>{schoolId}</strong>). This is an administrative view.</span>
+          </div>
+          <button
+            onClick={() => {
+              stopImpersonating();
+              router.push('/schools');
+            }}
+            className="px-3 py-1 bg-white hover:bg-slate-100 text-orange-700 rounded-lg shadow-sm font-extrabold text-[11px] transition-all hover:scale-105"
+          >
+            Exit Portal & Return to Admin Panel &rarr;
+          </button>
+        </div>
+      )}
 
-      {/* Main content */}
-      <div
-        className={`flex-1 flex flex-col transition-[margin] duration-300 ease-in-out
-          ${sidebarOpen ? 'ml-[220px]' : 'ml-[64px]'}`}
-      >
-        <Topbar
-          title={title}
-          subtitle={subtitle}
-          onToggle={() => setSidebarOpen(o => !o)}
-        />
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
+      <div className="flex-1 flex">
+        <SchoolSidebar open={sidebarOpen} />
+
+        {/* Main content */}
+        <div
+          className={`flex-1 flex flex-col transition-[margin] duration-300 ease-in-out
+            ${sidebarOpen ? 'ml-[220px]' : 'ml-[64px]'}`}
+        >
+          <Topbar
+            title={title}
+            subtitle={subtitle}
+            onToggle={() => setSidebarOpen(o => !o)}
+          />
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
       </div>
     </div>
   );

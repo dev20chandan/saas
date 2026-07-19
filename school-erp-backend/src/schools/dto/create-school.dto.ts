@@ -74,6 +74,10 @@ export class CreateSchoolDto {
 
   @IsString()
   @IsOptional()
+  themeColor?: string;
+
+  @IsString()
+  @IsOptional()
   adminName?: string;
 
   @IsEmail()
