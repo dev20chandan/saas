@@ -69,10 +69,11 @@ export class SchoolsService {
     search?: string;
     status?: string;
     plan?: string;
+    isCoaching?: boolean;
     page?: number;
     limit?: number;
   }) {
-    const { search, status, plan, page = 1, limit = 8 } = query;
+    const { search, status, plan, isCoaching, page = 1, limit = 8 } = query;
     const where: any = {};
 
     if (status && status !== 'All') {
@@ -81,6 +82,10 @@ export class SchoolsService {
 
     if (plan && plan !== 'All') {
       where.plan = plan;
+    }
+
+    if (isCoaching !== undefined) {
+      where.isCoaching = isCoaching;
     }
 
     if (search) {
@@ -142,6 +147,7 @@ export class SchoolsService {
       'operator',
       'joined',
       'themeColor',
+      'isCoaching',
     ];
     for (const field of writableFields) {
       if ((updateSchoolDto as any)[field] !== undefined) {

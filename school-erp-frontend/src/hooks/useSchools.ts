@@ -22,6 +22,7 @@ export interface School {
   operator: string;
   createdAt?: string;
   address?: string;
+  isCoaching?: boolean;
 }
 
 export interface SchoolsResponse {
@@ -29,10 +30,10 @@ export interface SchoolsResponse {
   total: number;
 }
 
-export function useSchools() {
+export function useSchools(isCoaching: boolean = false) {
   // Best Practice: Pass the expected generic type to SWR and use the centralized api.fetcher
   const { data, error, isLoading, mutate } = useSWR<SchoolsResponse>(
-    '/schools?limit=1000', 
+    `/schools?limit=1000&isCoaching=${isCoaching}`, 
     api.fetcher, 
     {
       revalidateOnFocus: false, // Prevent excessive refetches

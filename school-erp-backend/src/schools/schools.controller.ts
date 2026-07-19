@@ -40,11 +40,13 @@ export class SchoolsController {
     @Query('plan') plan?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('isCoaching') isCoaching?: string,
   ) {
     return this.schoolsService.findAll({
       search,
       status,
       plan,
+      isCoaching: isCoaching === 'true' ? true : isCoaching === 'false' ? false : false,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 8,
     });

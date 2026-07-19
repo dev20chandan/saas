@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/lib/ThemeContext';
@@ -53,17 +53,69 @@ export const ICONS = {
   credit:        'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
   edit:          'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
   user:          'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+  ai:            'M9.813 15.904L9 21l-.813-5.096L3 15l5.187-.904L9 9l.813 5.096L15 15l-5.187.904zM19.007 8.007L18.5 11l-.507-2.993L15 7.5l2.993-.507L18.5 4l.507 2.993L22 7.5l-2.993.507z',
 };
 
-export const NAV = [
+export interface NavChild {
+  label: string;
+  href: string;
+  module: DashboardModule;
+}
+
+export interface NavItem {
+  label: string;
+  icon: string;
+  href?: string;
+  module?: DashboardModule;
+  children?: NavChild[];
+}
+
+export const NAV: NavItem[] = [
   { label: 'Dashboard',       icon: ICONS.dashboard,     href: '/dashboard',     module: 'dashboard' as DashboardModule },
-  { label: 'Schools',         icon: ICONS.schools,       href: '/schools',       module: 'schools' as DashboardModule },
-  { label: 'Users',           icon: ICONS.users,         href: '/users',         module: 'users' as DashboardModule },
-  { label: 'Subscriptions',   icon: ICONS.subscriptions, href: '/subscriptions', module: 'subscriptions' as DashboardModule },
-  { label: 'Payments',        icon: ICONS.payments,      href: '/payments',      module: 'payments' as DashboardModule },
-  { label: 'Analytics',       icon: ICONS.analytics,     href: '/analytics',     module: 'analytics' as DashboardModule },
-  { label: 'Support Tickets', icon: ICONS.support,       href: '/support',       module: 'support' as DashboardModule },
-  { label: 'Audit Logs',      icon: ICONS.audit,         href: '/audit',         module: 'audit' as DashboardModule },
+  {
+    label: 'Organizations',
+    icon: ICONS.schools,
+    children: [
+      { label: 'All Schools', href: '/schools', module: 'schools' as DashboardModule },
+      { label: 'All Coaching Centers', href: '/coaching-centers', module: 'schools' as DashboardModule },
+    ]
+  },
+  {
+    label: 'Subscriptions',
+    icon: ICONS.subscriptions,
+    children: [
+      { label: 'Subscription Plans', href: '/subscriptions', module: 'subscriptions' as DashboardModule },
+      { label: 'Payment History', href: '/payments', module: 'payments' as DashboardModule },
+      { label: 'Trial Expiry', href: '/trial-expiry', module: 'payments' as DashboardModule },
+    ]
+  },
+  {
+    label: 'Branding & Domain',
+    icon: ICONS.globe,
+    children: [
+      { label: 'Custom Domain', href: '/custom-domain', module: 'settings' as DashboardModule },
+      { label: 'Branding', href: '/branding', module: 'settings' as DashboardModule },
+    ]
+  },
+  {
+    label: 'Platform Audit',
+    icon: ICONS.analytics,
+    children: [
+      { label: 'Active Users', href: '/users', module: 'users' as DashboardModule },
+      { label: 'Storage Usage', href: '/storage', module: 'analytics' as DashboardModule },
+      { label: 'Email/SMS Usage', href: '/email-sms', module: 'analytics' as DashboardModule },
+      { label: 'WhatsApp Usage', href: '/whatsapp', module: 'analytics' as DashboardModule },
+    ]
+  },
+  {
+    label: 'System Operations',
+    icon: ICONS.audit,
+    children: [
+      { label: 'Audit Logs', href: '/audit', module: 'audit' as DashboardModule },
+      { label: 'Support Tickets', href: '/support', module: 'support' as DashboardModule },
+      { label: 'Feature Flags', href: '/feature-flags', module: 'settings' as DashboardModule },
+    ]
+  },
   { label: 'Admins',          icon: ICONS.users,         href: '/admins',        module: 'admins' as DashboardModule },
   { label: 'Settings',        icon: ICONS.settings,      href: '/settings',      module: 'settings' as DashboardModule },
 ];
@@ -76,10 +128,44 @@ export default function Sidebar({ open }: SidebarProps) {
   const pathname = usePathname();
   const { darkMode, toggleDark } = useTheme();
   const { token, role, permissions, signOut } = useAuth();
-  const visibleNav = NAV.filter((item) => {
-    if (item.module === 'admins' && role !== 'owner') return false;
-    return hasModuleAccess(permissions, item.module);
-  });
+  
+  const visibleNav = useMemo(() => {
+    return NAV.filter((item) => {
+      // 1. If it represents admins, owner role only
+      if (item.module === 'admins' && role !== 'owner') return false;
+      
+      // 2. If it is a direct item, check normal permissions
+      if (item.href) {
+        return hasModuleAccess(permissions, item.module || ('dashboard' as DashboardModule));
+      }
+      
+      // 3. If it has children
+      if (item.children) {
+        const hasAccessibleChild = item.children.some(child => hasModuleAccess(permissions, child.module));
+        return hasAccessibleChild;
+      }
+      
+      return true;
+    });
+  }, [permissions, role]);
+
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  // Auto-expand folder if a child path is active
+  useEffect(() => {
+    visibleNav.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some((child) => pathname.startsWith(child.href));
+        if (hasActiveChild) {
+          setExpandedGroups((prev) => ({ ...prev, [item.label]: true }));
+        }
+      }
+    });
+  }, [pathname, visibleNav]);
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
 
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
 
@@ -150,14 +236,77 @@ export default function Sidebar({ open }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
         {visibleNav.map((item) => {
+          // If it has children, render as collapsible folder
+          if (item.children) {
+            const isGroupActive = item.children.some((child) => pathname.startsWith(child.href));
+            const isExpanded = !!expandedGroups[item.label];
+
+            return (
+              <div key={item.label} className="mb-1">
+                {/* Parent Accordion row */}
+                <button
+                  onClick={() => toggleGroup(item.label)}
+                  className={`w-full relative flex items-center justify-between h-10 px-4 mx-2 rounded-xl text-sm font-semibold
+                    transition-all duration-150 group
+                    ${isGroupActive
+                      ? 'text-blue-700 dark:text-blue-400 bg-blue-50/30'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  style={{ width: 'calc(100% - 16px)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`flex-shrink-0 transition-colors
+                      ${isGroupActive ? 'text-blue-600 dark:text-blue-300' : 'text-slate-400 dark:text-slate-300 group-hover:text-slate-650 dark:group-hover:text-slate-100'}`}>
+                      <Icon d={item.icon} className="w-[18px] h-[18px]" />
+                    </span>
+                    <span className={`whitespace-nowrap overflow-hidden transition-all duration-300
+                      ${open ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0'}`}>
+                      {item.label}
+                    </span>
+                  </div>
+                  {open && (
+                    <Icon
+                      d={isExpanded ? ICONS.chevronDown : ICONS.chevronRight}
+                      className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                    />
+                  )}
+                </button>
+
+                {/* Sublist */}
+                {isExpanded && open && (
+                  <div className="mt-0.5 ml-6 pl-3 border-l border-blue-100 dark:border-[#2a2d3a] flex flex-col gap-0.5" style={{ width: 'calc(100% - 24px)' }}>
+                    {item.children
+                      .filter(child => hasModuleAccess(permissions, child.module))
+                      .map((child) => {
+                        const isChildActive = pathname.startsWith(child.href);
+                        return (
+                          <Link
+                            key={child.label}
+                            href={child.href}
+                            className={`flex items-center min-h-8 py-1 px-3 rounded-lg text-[11px] font-semibold transition-all duration-150
+                              ${isChildActive
+                                ? 'text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20'
+                                : 'text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white'
+                              }`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          // Otherwise, render normal link
           const isActive = item.href === '/dashboard'
             ? pathname === '/dashboard'
-            : pathname.startsWith(item.href);
-
+            : pathname.startsWith(item.href || '');
           return (
             <Link
               key={item.label}
-              href={item.href}
+              href={item.href || '#'}
               title={!open ? item.label : undefined}
               className={`relative flex items-center gap-3 h-10 px-4 mx-2 rounded-xl text-sm font-semibold
                 transition-all duration-150 group mb-0.5
@@ -180,6 +329,8 @@ export default function Sidebar({ open }: SidebarProps) {
             </Link>
           );
         })}
+        {/* Scroll Spacer to prevent overlap of expanded sub-menus behind bottom profile card */}
+        <div className="h-20" />
       </nav>
 
       {/* Bottom: profile + dark toggle + logout */}

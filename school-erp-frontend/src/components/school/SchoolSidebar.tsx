@@ -9,13 +9,130 @@ import { api } from '@/lib/api';
 import { getRoleDisplayName } from '@/lib/auth';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 
-export const SCHOOL_NAV = [
+export interface NavChild {
+  label: string;
+  href: string;
+}
+
+export interface NavItem {
+  label: string;
+  icon: string;
+  href?: string;
+  children?: NavChild[];
+}
+
+export const SCHOOL_NAV: NavItem[] = [
   { label: 'Dashboard',   icon: ICONS.dashboard, href: '/school/dashboard' },
-  { label: 'Students',    icon: ICONS.users,     href: '/school/students' },
-  { label: 'Teachers',    icon: ICONS.user,      href: '/school/teachers' },
-  { label: 'Classes',     icon: ICONS.schools,   href: '/school/classes' },
+  { 
+    label: 'Academic',   
+    icon: ICONS.schools,
+    children: [
+      { label: 'Student Management', href: '/school/students' },
+      { label: 'Teacher Management', href: '/school/teachers' },
+      { label: 'Parent Portal', href: '/school/parents' },
+      { label: 'Batch / Class Management', href: '/school/classes' },
+      { label: 'Subject Management', href: '/school/subjects' },
+      { label: 'Timetable', href: '/school/timetable' },
+      { label: 'Homework / Assignments', href: '/school/homework' },
+      { label: 'Notes & Study Material (PDF, Video)', href: '/school/material' },
+      { label: 'Online Tests / Mock Tests', href: '/school/tests' },
+      { label: 'Result & Report Card', href: '/school/results' },
+      { label: 'Certificates', href: '/school/certificates' },
+    ]
+  },
+  { 
+    label: 'Parent Features',   
+    icon: ICONS.users,
+    children: [
+      { label: 'Attendance Notification', href: '/school/parents/attendance' },
+      { label: 'Homework Notification', href: '/school/parents/homework' },
+      { label: 'Fee Reminder', href: '/school/parents/fees' },
+      { label: 'Exam Result', href: '/school/parents/results' },
+      { label: 'Chat with Teacher', href: '/school/parents/chat' },
+      { label: 'Leave Request', href: '/school/parents/leave' },
+    ]
+  },
+  { 
+    label: 'Teacher Portal',   
+    icon: ICONS.user,
+    children: [
+      { label: 'Mark Attendance', href: '/school/teachers/attendance' },
+      { label: 'Upload Homework', href: '/school/teachers/homework' },
+      { label: 'Upload Notes', href: '/school/teachers/notes' },
+      { label: 'Create Exam', href: '/school/teachers/exams' },
+      { label: 'Enter Marks', href: '/school/teachers/marks' },
+      { label: 'Student Performance Analytics', href: '/school/teachers/analytics' },
+      { label: 'Leave Request', href: '/school/teachers/leave' },
+    ]
+  },
+  { 
+    label: 'AI Features',   
+    icon: ICONS.ai,
+    children: [
+      { label: 'AI Homework Generator', href: '/school/ai/homework' },
+      { label: 'AI Question Paper Generator', href: '/school/ai/questions' },
+      { label: 'AI Report Card Summary', href: '/school/ai/report-card' },
+      { label: 'AI Attendance Insights', href: '/school/ai/attendance' },
+      { label: 'AI Fee Prediction', href: '/school/ai/fees' },
+      { label: 'AI Student Performance Prediction', href: '/school/ai/performance' },
+      { label: 'AI Chatbot for Parents', href: '/school/ai/chatbot' },
+      { label: 'AI Doubt Solver', href: '/school/ai/doubts' },
+    ]
+  },
+  { 
+    label: 'Coaching Specific',   
+    icon: ICONS.subscriptions,
+    children: [
+      { label: 'Batch Timing', href: '/school/coaching/batch-timing' },
+      { label: 'Demo Classes', href: '/school/coaching/demo' },
+      { label: 'Lead Management', href: '/school/coaching/leads' },
+      { label: 'Admission Enquiry', href: '/school/coaching/enquiry' },
+      { label: 'Counsellor CRM', href: '/school/coaching/crm' },
+      { label: 'Follow-up Calls', href: '/school/coaching/followups' },
+      { label: 'Course Management', href: '/school/coaching/courses' },
+      { label: 'EMI Fees', href: '/school/coaching/emi' },
+      { label: 'Batch Transfer', href: '/school/coaching/batch-transfer' },
+      { label: 'Doubt Sessions', href: '/school/coaching/doubts' },
+      { label: 'Recorded Lectures', href: '/school/coaching/recorded' },
+      { label: 'Zoom/Google Meet Integration', href: '/school/coaching/meetings' },
+    ]
+  },
   { label: 'Attendance',  icon: ICONS.check,     href: '/school/attendance' },
-  { label: 'Fees',        icon: ICONS.payments,  href: '/school/fees' },
+  { 
+    label: 'Fees & Finance',  
+    icon: ICONS.payments,
+    children: [
+      { label: 'Fee Collection', href: '/school/fees' },
+      { label: 'Expenses', href: '/school/expenses' },
+      { label: 'Payroll', href: '/school/payroll' },
+    ]
+  },
+  { 
+    label: 'Calendar',   
+    icon: ICONS.calendar,
+    children: [
+      { label: 'Holidays', href: '/school/calendar/holidays' },
+      { label: 'Exams', href: '/school/calendar/exams' },
+      { label: 'Events', href: '/school/calendar/events' },
+      { label: 'Parent Meeting', href: '/school/calendar/parent-meetings' },
+      { label: 'Teacher Meeting', href: '/school/calendar/teacher-meetings' },
+    ]
+  },
+  { label: 'Communication', icon: ICONS.bell, href: '/school/communication' },
+  { 
+    label: 'Inventory',   
+    icon: ICONS.analytics,
+    children: [
+      { label: 'Library', href: '/school/inventory/library' },
+      { label: 'Books', href: '/school/inventory/books' },
+      { label: 'Uniform', href: '/school/inventory/uniforms' },
+      { label: 'Stationery', href: '/school/inventory/stationery' },
+      { label: 'Hostel', href: '/school/inventory/hostel' },
+      { label: 'Transport', href: '/school/inventory/transport' },
+      { label: 'Bus Tracking', href: '/school/inventory/bus-tracking' },
+    ]
+  },
+  { label: 'Reports',     icon: ICONS.analytics, href: '/school/reports' },
   { label: 'Settings',    icon: ICONS.settings,  href: '/school/settings' },
 ];
 
@@ -26,9 +143,28 @@ interface SchoolSidebarProps {
 export default function SchoolSidebar({ open }: SchoolSidebarProps) {
   const pathname = usePathname();
   const { darkMode, toggleDark } = useTheme();
-  const { token, role, signOut } = useAuth();
+  const { token, role, signOut, isCoaching } = useAuth();
   
   const [profile, setProfile] = useState<{ name: string; email: string } | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    SCHOOL_NAV.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some((child) => pathname.startsWith(child.href));
+        if (hasActiveChild) {
+          setExpandedGroups((prev) => ({ ...prev, [item.label]: true }));
+        }
+      }
+    });
+  }, [pathname]);
+
+  const toggleGroup = (label: string) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
+  };
 
   useEffect(() => {
     let active = true;
@@ -89,28 +225,91 @@ export default function SchoolSidebar({ open }: SchoolSidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden">
-        {SCHOOL_NAV.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+      <nav className="flex-1 py-3 overflow-y-auto overflow-x-hidden space-y-0.5">
+        {SCHOOL_NAV.filter(item => {
+          if (item.label === 'Coaching Specific' && !isCoaching) return false;
+          return true;
+        }).map((item) => {
+          if (item.children) {
+            const hasActiveChild = item.children.some(child => pathname.startsWith(child.href));
+            const isExpanded = !!expandedGroups[item.label];
 
+            return (
+              <div key={item.label} className="flex flex-col">
+                <button
+                  onClick={() => toggleGroup(item.label)}
+                  title={!open ? item.label : undefined}
+                  className={`relative flex items-center justify-between h-9 px-4 mx-2 rounded-xl text-xs font-semibold
+                    transition-all duration-150 group
+                    ${hasActiveChild
+                      ? 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400'
+                      : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                >
+                  {hasActiveChild && (
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-green-600 rounded-r-full" />
+                  )}
+                  <div className="flex items-center gap-3">
+                    <span className={`flex-shrink-0 transition-colors
+                      ${hasActiveChild ? 'text-green-600 dark:text-green-300' : 'text-slate-400 dark:text-slate-300 group-hover:text-slate-650 dark:group-hover:text-slate-100'}`}>
+                      <Icon d={item.icon} className="w-4 h-4" />
+                    </span>
+                    <span className={`whitespace-nowrap overflow-hidden transition-all duration-300
+                      ${open ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0'}`}>
+                      {item.label}
+                    </span>
+                  </div>
+                  {open && (
+                    <span className={`text-slate-400 group-hover:text-slate-650 dark:group-hover:text-slate-100 transition-transform duration-200
+                      ${isExpanded ? 'rotate-180' : ''}`}>
+                      <Icon d={ICONS.chevronDown} className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </button>
+
+                {isExpanded && open && (
+                  <div className="mt-0.5 ml-6 pl-3 border-l border-green-100 dark:border-[#2a2d3a] flex flex-col gap-0.5">
+                    {item.children.map((child) => {
+                      const isChildActive = pathname.startsWith(child.href);
+                      return (
+                        <Link
+                          key={child.label}
+                          href={child.href}
+                          className={`flex items-center min-h-8 py-1 px-3 rounded-lg text-[11px] font-semibold transition-all duration-150
+                            ${isChildActive
+                              ? 'text-green-700 dark:text-green-400 bg-green-50/50 dark:bg-green-950/20'
+                              : 'text-slate-500 dark:text-slate-450 hover:text-slate-800 dark:hover:text-white'
+                            }`}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          const isActive = pathname.startsWith(item.href || '');
           return (
             <Link
               key={item.label}
-              href={item.href}
+              href={item.href || '#'}
               title={!open ? item.label : undefined}
-              className={`relative flex items-center gap-3 h-10 px-4 mx-2 rounded-xl text-sm font-semibold
-                transition-all duration-150 group mb-0.5
+              className={`relative flex items-center gap-3 h-9 px-4 mx-2 rounded-xl text-xs font-semibold
+                transition-all duration-150 group
                 ${isActive
                   ? 'bg-green-50 dark:bg-green-950/60 text-green-700 dark:text-green-400'
                   : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white'
                 }`}
             >
               {isActive && (
-                <span className="absolute left-0 top-2 bottom-2 w-1 bg-green-600 rounded-r-full" />
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-green-600 rounded-r-full" />
               )}
               <span className={`flex-shrink-0 transition-colors
                 ${isActive ? 'text-green-600 dark:text-green-300' : 'text-slate-400 dark:text-slate-300 group-hover:text-slate-650 dark:group-hover:text-slate-100'}`}>
-                <Icon d={item.icon} className="w-[18px] h-[18px]" />
+                <Icon d={item.icon} className="w-4 h-4" />
               </span>
               <span className={`whitespace-nowrap overflow-hidden transition-all duration-300
                 ${open ? 'opacity-100 max-w-[160px]' : 'opacity-0 max-w-0'}`}>
@@ -119,6 +318,8 @@ export default function SchoolSidebar({ open }: SchoolSidebarProps) {
             </Link>
           );
         })}
+        {/* Scroll Spacer to prevent overlap of expanded sub-menus behind bottom profile card */}
+        <div className="h-20" />
       </nav>
 
       {/* Bottom: profile + dark toggle + logout */}

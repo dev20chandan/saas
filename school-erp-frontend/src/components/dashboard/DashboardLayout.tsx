@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, ReactNode } from 'react';
+import { useEffect, useState, useMemo, ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Sidebar, { Icon, ICONS, NAV } from '@/components/dashboard/Sidebar';
 import { useAuth } from '@/lib/AuthContext';
@@ -62,8 +62,22 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
   const router = useRouter();
   const pathname = usePathname();
   const { token, role, permissions, isReady } = useAuth();
-  const activeRoute = NAV.find((item) => item.href === pathname || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
-  const routeAllowed = activeRoute ? hasModuleAccess(permissions, activeRoute.module) : true;
+  const activeRoute = useMemo(() => {
+    for (const item of NAV) {
+      if (item.href && (item.href === pathname || (item.href !== '/dashboard' && pathname.startsWith(item.href)))) {
+        return item;
+      }
+      if (item.children) {
+        const child = item.children.find(
+          (c) => c.href === pathname || (c.href !== '/dashboard' && pathname.startsWith(c.href))
+        );
+        if (child) return child;
+      }
+    }
+    return null;
+  }, [pathname]);
+
+  const routeAllowed = activeRoute && activeRoute.module ? hasModuleAccess(permissions, activeRoute.module) : true;
 
   useEffect(() => {
     if (!isReady) {

@@ -1,7 +1,11 @@
-import { IsString, IsOptional, IsEmail, IsNumber, IsEnum, Matches } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNumber, IsEnum, Matches, IsBoolean } from 'class-validator';
 import { SchoolPlan, SchoolStatus } from './create-school.dto';
 
 export class UpdateSchoolDto {
+  @IsBoolean()
+  @IsOptional()
+  isCoaching?: boolean;
+
   @IsString()
   @IsOptional()
   name?: string;

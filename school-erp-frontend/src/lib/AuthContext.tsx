@@ -21,6 +21,7 @@ interface AuthContextValue {
   isReady: boolean;
   isImpersonating: boolean;
   schoolColor: string;
+  isCoaching: boolean;
   setSchoolColor: (color: string) => void;
   signIn: (payload: { token: string; role: AdminRole; type?: 'admin' | 'user'; schoolId?: string; permissions?: ModulePermissions }) => void;
   signOut: () => void;
@@ -37,6 +38,7 @@ const AuthContext = createContext<AuthContextValue>({
   isReady: false,
   isImpersonating: false,
   schoolColor: "#10b981",
+  isCoaching: false,
   setSchoolColor: () => {},
   signIn: () => {},
   signOut: () => {},
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [schoolColor, setSchoolColor] = useState("#10b981");
+  const [isCoaching, setIsCoaching] = useState(false);
 
   useEffect(() => {
     const nextToken = localStorage.getItem(AUTH_STORAGE_KEYS.token);
@@ -62,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storedPermissions = localStorage.getItem(AUTH_STORAGE_KEYS.permissions);
     const hasParentToken = !!localStorage.getItem("systemAdminToken");
     const cachedColor = nextSchoolId ? localStorage.getItem(`school_theme_${nextSchoolId}`) : null;
+    const cachedCoaching = nextSchoolId ? localStorage.getItem(`school_is_coaching_${nextSchoolId}`) === 'true' : false;
 
     const timeoutId = window.setTimeout(() => {
       setToken(nextToken);
@@ -70,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSchoolId(nextSchoolId);
       setPermissions(parsePermissions(storedPermissions) ?? getDefaultPermissions(nextRole));
       setIsImpersonating(hasParentToken);
+      setIsCoaching(cachedCoaching);
       if (cachedColor) {
         setSchoolColor(cachedColor);
       }
@@ -92,14 +97,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!schoolId) {
       setSchoolColor("#10b981");
+      setIsCoaching(false);
       return;
     }
 
     api.get(`/schools/${schoolId}`)
       .then((res) => {
-        if (res && res.themeColor) {
-          setSchoolColor(res.themeColor);
-          localStorage.setItem(`school_theme_${schoolId}`, res.themeColor);
+        if (res) {
+          if (res.themeColor) {
+            setSchoolColor(res.themeColor);
+            localStorage.setItem(`school_theme_${schoolId}`, res.themeColor);
+          }
+          const coachingVal = !!res.isCoaching;
+          setIsCoaching(coachingVal);
+          localStorage.setItem(`school_is_coaching_${schoolId}`, String(coachingVal));
         }
       })
       .catch((e) => console.error("Error loading theme color inside AuthContext:", e));
@@ -218,12 +229,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSchoolId("");
     setPermissions(getDefaultPermissions(DEFAULT_ROLE));
     setSchoolColor("#10b981");
+    setIsCoaching(false);
     setIsImpersonating(false);
     setIsReady(true);
   }
 
   return (
-    <AuthContext.Provider value={{ token, role, type, schoolId, permissions, isReady, isImpersonating, schoolColor, setSchoolColor: handleSetSchoolColor, signIn, signOut, impersonateSchool, stopImpersonating }}>
+    <AuthContext.Provider value={{ token, role, type, schoolId, permissions, isReady, isImpersonating, schoolColor, isCoaching, setSchoolColor: handleSetSchoolColor, signIn, signOut, impersonateSchool, stopImpersonating }}>
       {children}
     </AuthContext.Provider>
   );

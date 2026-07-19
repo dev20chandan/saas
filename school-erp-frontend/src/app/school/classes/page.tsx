@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import SchoolLayout from '@/components/school/SchoolLayout';
 import { Icon, ICONS } from '@/components/dashboard/Sidebar';
 import { api } from '@/lib/api';
@@ -18,24 +18,18 @@ interface ClassItem {
 const fetcher = (url: string) => api.get(url);
 
 export default function SchoolClassesPage() {
-  // Fetch teachers and students to build dynamic relationships!
+  // Fetch teachers, students, and classes!
   const { data: teachersData } = useSWR('/users?role=Teacher&limit=100', fetcher, { revalidateOnFocus: false });
   const { data: studentsData } = useSWR('/students?limit=250', fetcher, { revalidateOnFocus: false });
+  const { data: classesList, error: classesError, mutate: mutateClasses } = useSWR('/classes', fetcher, { revalidateOnFocus: false });
 
   const teachers = teachersData?.users || [];
   const students = studentsData?.users || [];
-
-  // Default hardcoded classes layout which will resolve dynamically
-  const [classesList, setClassesList] = useState<ClassItem[]>([
-    { id: '1', name: '10-A', roomNumber: 'Room 301', teacherId: '', teacherName: 'Dr. Vivek Dev', subjects: ['Mathematics', 'Science', 'English'] },
-    { id: '2', name: '10-B', roomNumber: 'Room 302', teacherId: '', teacherName: 'Meera Sen', subjects: ['Mathematics', 'English', 'History'] },
-    { id: '3', name: '9-A', roomNumber: 'Room 201', teacherId: '', teacherName: 'Sanjay Dutt', subjects: ['Physics', 'Chemistry', 'Biology'] },
-    { id: '4', name: '9-B', roomNumber: 'Room 202', teacherId: '', teacherName: 'Aparna Nair', subjects: ['English', 'History', 'Mathematics'] },
-    { id: '5', name: '8-A', roomNumber: 'Room 101', teacherId: '', teacherName: 'Rohan Deshmukh', subjects: ['Science', 'Computer Science', 'English'] },
-  ]);
+  const classes = classesList || [];
+  const isLoading = !classesList && !classesError;
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -47,6 +41,19 @@ export default function SchoolClassesPage() {
     teacherName: '',
     subjectsString: '',
   });
+
+  // Keep selectedClass reference in sync with fetched class list
+  const selectedClass = useMemo(() => {
+    if (!selectedClassId) return null;
+    return classes.find((c: ClassItem) => c.id === selectedClassId) || null;
+  }, [classes, selectedClassId]);
+
+  // Set default selection when classes are loaded
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0].id);
+    }
+  }, [classes, selectedClassId]);
 
   // Calculate dynamic stats per class (Students count)
   const classStats = useMemo(() => {
@@ -62,12 +69,12 @@ export default function SchoolClassesPage() {
 
   // Filtered classes list
   const filteredClasses = useMemo(() => {
-    return classesList.filter(c =>
+    return classes.filter((c: ClassItem) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.teacherName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.roomNumber.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [classesList, searchQuery]);
+  }, [classes, searchQuery]);
 
   // Open Handlers
   const handleAddOpen = () => {
@@ -76,7 +83,7 @@ export default function SchoolClassesPage() {
     setFormData({
       name: '',
       roomNumber: `Room ${Math.floor(100 + Math.random() * 400)}`,
-      teacherName: teachers[0]?.name || 'Not Assigned',
+      teacherName: teachers[0]?.name || 'Dr. Vivek Dev',
       subjectsString: 'Mathematics, Science, English',
     });
     setIsModalOpen(true);
@@ -94,40 +101,46 @@ export default function SchoolClassesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const subjects = formData.subjectsString
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
 
-    if (isEditing && currentId) {
-      setClassesList(prev =>
-        prev.map(c =>
-          c.id === currentId
-            ? { ...c, name: formData.name, roomNumber: formData.roomNumber, teacherName: formData.teacherName, subjects }
-            : c
-        )
-      );
-    } else {
-      const newClass: ClassItem = {
-        id: String(Date.now()),
+    try {
+      const payload = {
         name: formData.name,
         roomNumber: formData.roomNumber,
-        teacherId: '',
         teacherName: formData.teacherName,
         subjects,
       };
-      setClassesList(prev => [...prev, newClass]);
+
+      if (isEditing && currentId) {
+        await api.put(`/classes/${currentId}`, payload);
+      } else {
+        const res = await api.post('/classes', payload);
+        if (res && res.id) {
+          setSelectedClassId(res.id);
+        }
+      }
+      mutateClasses();
+      setIsModalOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Error saving class track');
     }
-    setIsModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to remove this class track?')) return;
-    setClassesList(prev => prev.filter(c => c.id !== id));
-    if (selectedClass?.id === id) {
-      setSelectedClass(null);
+    try {
+      await api.delete(`/classes/${id}`);
+      mutateClasses();
+      if (selectedClassId === id) {
+        setSelectedClassId(null);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error deleting class');
     }
   };
 
@@ -137,9 +150,60 @@ export default function SchoolClassesPage() {
     return students.filter((s: any) => s.settings?.className === selectedClass.name);
   }, [selectedClass, students]);
 
+  // Seed Helper
+  const seedDemoClasses = async () => {
+    const demo = [
+      { name: '10-A', room: 'Room 301', mentor: 'Dr. Vivek Dev', subjects: ['Mathematics', 'Science', 'English'] },
+      { name: '10-B', room: 'Room 302', mentor: 'Meera Sen', subjects: ['Mathematics', 'English', 'History'] },
+      { name: '9-A', room: 'Room 201', mentor: 'Sanjay Dutt', subjects: ['Physics', 'Chemistry', 'Biology'] },
+      { name: '9-B', room: 'Room 202', mentor: 'Aparna Nair', subjects: ['English', 'History', 'Mathematics'] },
+      { name: '8-A', room: 'Room 101', mentor: 'Rohan Deshmukh', subjects: ['Science', 'Computer Science', 'English'] },
+    ];
+
+    try {
+      for (const item of demo) {
+        // avoid duplicates if cached/partially configured
+        const exists = classes.some((c: any) => c.name === item.name);
+        if (exists) continue;
+
+        await api.post('/classes', {
+          name: item.name,
+          roomNumber: item.room,
+          teacherName: item.mentor,
+          subjects: item.subjects,
+        });
+      }
+      mutateClasses();
+    } catch (err: any) {
+      alert('Failed to seed classes: ' + err.message);
+    }
+  };
+
   return (
     <SchoolLayout title="Classes & Sections" subtitle="Track classrooms, class mentors/teachers, subjects, and student distribution.">
       <div className="p-4 sm:p-6 space-y-6">
+
+        {/* Helper Seed Banner if empty */}
+        {classes.length === 0 && !isLoading && (
+          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 dark:border-emerald-500/30 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping" />
+                Initialize Class Tracks
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
+                There are no active class records or section coordinates added structure-wise. Generate standard academic tracks automatically to distribute student Admissions.
+              </p>
+            </div>
+            <button
+              onClick={seedDemoClasses}
+              className="h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all flex-shrink-0 shadow-md shadow-emerald-500/10"
+            >
+              <Icon d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0 0l-3-3m3 3l3-3" className="w-4 h-4" />
+              Populate Default Classes
+            </button>
+          </div>
+        )}
 
         {/* Split grid Layout */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
@@ -171,14 +235,18 @@ export default function SchoolClassesPage() {
 
             {/* Grid display */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {filteredClasses.map(cls => {
+              {isLoading ? (
+                <div className="col-span-2 py-12 text-center text-slate-400 font-semibold text-sm">
+                  Loading class coordinates...
+                </div>
+              ) : filteredClasses.map((cls: ClassItem) => {
                 const count = classStats[cls.name] || 0;
-                const isSelected = selectedClass?.id === cls.id;
+                const isSelected = selectedClassId === cls.id;
 
                 return (
                   <div
                     key={cls.id}
-                    onClick={() => setSelectedClass(cls)}
+                    onClick={() => setSelectedClassId(cls.id)}
                     className={`bg-white dark:bg-[#1a1d27] border rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between h-44 shadow-sm hover:shadow-md ${isSelected ? 'border-green-600 ring-2 ring-green-500/10' : 'border-slate-100 dark:border-[#2a2d3a]'
                       }`}
                   >
@@ -219,7 +287,7 @@ export default function SchoolClassesPage() {
                 );
               })}
 
-              {filteredClasses.length === 0 && (
+              {!isLoading && filteredClasses.length === 0 && (
                 <div className="col-span-2 bg-white dark:bg-[#1a1d27] border border-slate-100 dark:border-[#2a2d3a] rounded-2xl py-12 text-center">
                   <Icon d={ICONS.schools} className="w-10 h-10 text-slate-205 dark:text-slate-700 mx-auto mb-3" />
                   <p className="text-sm font-semibold text-slate-500">No classes found</p>
@@ -240,8 +308,8 @@ export default function SchoolClassesPage() {
 
                   {/* Subjects badges */}
                   <div className="flex flex-wrap gap-1 mt-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                    {selectedClass.subjects.map(s => (
-                      <span key={s} className="text-[10px] font-bold px-2 py-0.5 roundedbg rounded-md bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300">
+                    {selectedClass.subjects.map((s: string) => (
+                      <span key={s} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-300">
                         {s}
                       </span>
                     ))}
@@ -273,7 +341,7 @@ export default function SchoolClassesPage() {
               <div className="flex-1 flex flex-col items-center justify-center text-center">
                 <Icon d={ICONS.schools} className="w-10 h-10 text-slate-200 dark:text-slate-700 mb-3" />
                 <p className="text-sm font-semibold text-slate-500">No class selected</p>
-                <p className="text-xs text-slate-400 max-w-[200px] mt-1 mx-auto">Click on any class card to view subject details, mentors and class lists.</p>
+                <p className="text-xs text-slate-450 max-w-[200px] mt-1 mx-auto">Click on any class card to view subject details, mentors and class lists.</p>
               </div>
             )}
 
@@ -294,7 +362,7 @@ export default function SchoolClassesPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
           <div className="bg-white dark:bg-[#1a1d27] border border-slate-100 dark:border-[#2a2d3a] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in scale-in duration-200">
-            <div className="px-6 py-4 border-b border-slate-100 dark:border-[#2a2d3a] flex items-center justify-between bg-slate-50/50 dark:bg-[#1c1f2e]">
+            <div className="px-6 py-4 border-b border-slate-105 dark:border-[#2a2d3a] flex items-center justify-between bg-slate-50/50 dark:bg-[#1c1f2e]">
               <h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">
                 {isEditing ? 'Modify Class Parameters' : 'Create Class Structure'}
               </h3>
@@ -306,7 +374,7 @@ export default function SchoolClassesPage() {
             <form onSubmit={handleSave} className="p-6 space-y-4">
 
               <div className="space-y-1">
-                <label className="block text-[11px] font-bold text-slate-500 uppercase">Class Name / Code</label>
+                <label className="block text-[11px] font-bold text-slate-505 uppercase">Class Name / Code</label>
                 <input
                   type="text"
                   required
@@ -363,7 +431,7 @@ export default function SchoolClassesPage() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="h-10 px-4 rounded-xl border border-slate-200 dark:border-[#2a2d3a] text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold transition-all"
+                  className="h-10 px-4 rounded-xl border border-slate-205 dark:border-[#2a2d3a] text-slate-650 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-white/5 text-xs font-bold transition-all"
                 >
                   Cancel
                 </button>

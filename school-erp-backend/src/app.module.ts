@@ -15,6 +15,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AdminsModule } from './admins/admins.module';
 import { StudentsModule } from './students/students.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { ClassesModule } from './classes/classes.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { TimetableModule } from './timetable/timetable.module';
+import { EnquiryModule } from './enquiry/enquiry.module';
 
 @Module({
   imports: [
@@ -41,6 +45,10 @@ import { AttendanceModule } from './attendance/attendance.module';
     AdminsModule,
     StudentsModule,
     AttendanceModule,
+    ClassesModule,
+    SubjectsModule,
+    TimetableModule,
+    EnquiryModule,
   ],
   controllers: [AppController],
   providers: [

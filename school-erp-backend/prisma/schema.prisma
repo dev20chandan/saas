@@ -23,6 +23,7 @@ model School {
   phone      String
   operator   String?
   themeColor String    @default("#4F46E5")
+  isCoaching Boolean   @default(false)
   joined     DateTime  @default(now())
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -150,4 +151,61 @@ model Attendance {
   updatedAt  DateTime @updatedAt
 
   student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Class {
+  id          String   @id @default(uuid())
+  name        String
+  roomNumber  String
+  teacherId   String?
+  teacherName String
+  subjects    String[]
+  schoolId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  name        String
+  code        String
+  type        String   @default("Theory")
+  className   String
+  teacherName String
+  schoolId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Timetable {
+  id          String   @id @default(uuid())
+  className   String
+  dayOfWeek   String
+  subjectName String
+  startTime   String
+  endTime     String
+  teacherName String
+  roomNumber  String
+  schoolId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AdmissionEnquiry {
+  id            String   @id @default(uuid())
+  studentName   String
+  parentName    String
+  phone         String
+  email         String?
+  address       String?
+  course        String
+  className     String
+  source        String   @default("Walk-In")
+  status        String   @default("New")
+  remarks       String?
+  followUpDate  String?
+  assignedTo    String?
+  schoolId      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

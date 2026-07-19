@@ -18,7 +18,14 @@ export interface DashboardStats {
   inactiveUsers?: number;
   totalStudents?: number;
   totalTeachers?: number;
+  totalParents?: number;
   monthlyActiveUsers?: number;
+  // New dynamic fields from stats API
+  newAdmissions?: number;
+  activeBatches?: number;
+  pendingFeeStudents?: number;
+  totalEnquiries?: number;
+  enrolledEnquiries?: number;
   counters?: {
     schoolAdmins?: number;
     schoolSubAdmins?: number;

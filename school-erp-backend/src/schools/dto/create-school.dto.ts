@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum, IsNumber, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsEnum, IsNumber, Matches, IsBoolean } from 'class-validator';
 
 export enum SchoolPlan {
   Basic = 'Basic',
@@ -15,6 +15,10 @@ export enum SchoolStatus {
 }
 
 export class CreateSchoolDto {
+  @IsBoolean()
+  @IsOptional()
+  isCoaching?: boolean;
+
   @IsString()
   @IsNotEmpty()
   name: string;
