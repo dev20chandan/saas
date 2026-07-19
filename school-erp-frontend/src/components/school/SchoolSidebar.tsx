@@ -69,10 +69,13 @@ export default function SchoolSidebar({ open }: SchoolSidebarProps) {
 
   return (
     <aside
-      className={`flex flex-col fixed top-0 left-0 h-full z-30
-        border-r transition-[width] duration-300 ease-in-out overflow-hidden
+      className={`flex flex-col fixed top-0 h-full z-30
+        border-r transition-all duration-300 ease-in-out overflow-hidden
         bg-white dark:bg-[#13151f] border-green-100 dark:border-[#2a2d3a] shadow-sm
-        ${open ? 'w-[220px]' : 'w-[64px]'}`}
+        md:left-0 md:translate-x-0
+        ${open 
+          ? 'w-[220px] left-0 translate-x-0' 
+          : 'w-[220px] -translate-x-full left-[-220px] md:w-[64px] md:translate-x-0 md:left-0'}`}
     >
       {/* Logo */}
       <div className="flex items-center h-14 px-4 border-b border-green-100 dark:border-[#2a2d3a] gap-3 flex-shrink-0">

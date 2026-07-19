@@ -71,6 +71,12 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
     }
   }, [isReady, router, token]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, []);
+
   if (!isReady || !token) {
     return (
       <div className="min-h-screen bg-[#f5fdf4] dark:bg-[#0f1117] flex items-center justify-center">
@@ -108,13 +114,21 @@ export default function SchoolLayout({ children, title, subtitle }: SchoolLayout
         </div>
       )}
 
-      <div className="flex-1 flex">
+      <div className="flex-1 flex relative">
+        {/* Backdrop for mobile drawer */}
+        {sidebarOpen && (
+          <div 
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-25 transition-opacity"
+          />
+        )}
+
         <SchoolSidebar open={sidebarOpen} />
 
         {/* Main content */}
         <div
-          className={`flex-1 flex flex-col transition-[margin] duration-300 ease-in-out
-            ${sidebarOpen ? 'ml-[220px]' : 'ml-[64px]'}`}
+          className={`flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out
+            ${sidebarOpen ? 'md:ml-[220px]' : 'md:ml-[64px]'}`}
         >
           <Topbar
             title={title}

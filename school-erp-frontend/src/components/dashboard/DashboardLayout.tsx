@@ -75,6 +75,12 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
     }
   }, [isReady, router, token]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  }, []);
+
   if (!isReady) {
     return (
       <div className="min-h-screen bg-[#f5f7fa] dark:bg-[#0f1117] flex items-center justify-center">
@@ -96,14 +102,22 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7fa] dark:bg-[#0f1117] font-sans text-slate-800 dark:text-slate-100">
+    <div className="flex min-h-screen bg-[#f5f7fa] dark:bg-[#0f1117] font-sans text-slate-800 dark:text-slate-100 relative">
+      {/* Backdrop for mobile drawer */}
+      {sidebarOpen && (
+        <div 
+          onClick={() => setSidebarOpen(false)}
+          className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-25 transition-opacity"
+        />
+      )}
+
       {/* Sidebar — reads darkMode from ThemeContext directly */}
       <Sidebar open={sidebarOpen} />
 
       {/* Main content */}
       <div
-        className={`flex-1 flex flex-col transition-[margin] duration-300 ease-in-out
-          ${sidebarOpen ? 'ml-[220px]' : 'ml-[64px]'}`}
+        className={`flex-1 flex flex-col min-w-0 transition-[margin] duration-300 ease-in-out
+          ${sidebarOpen ? 'md:ml-[220px]' : 'md:ml-[64px]'}`}
       >
         <Topbar
           title={title}
